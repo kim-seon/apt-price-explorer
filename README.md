@@ -1,4 +1,4 @@
-# Real Estate Data Explorer
+# Apt Price Explorer — 아파트 실거래가 탐색기
 
 수도권 아파트 실거래 데이터를 단지 중심으로 탐색하는 서비스. (작성 중 — MVP 완료 시 정리)
 
