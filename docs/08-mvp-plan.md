@@ -1,0 +1,66 @@
+# 08. MVP Scope & Milestones
+
+- Status: Accepted (2026-10-14)
+- Date: 2026-10-14
+
+---
+
+## 1. MVP 범위 (최종)
+
+### 포함
+
+| 영역 | 내용 | 근거 |
+|---|---|---|
+| 데이터 | 수도권(시군구 83개) 아파트 매매, 2006-01 ~ 현재 | 01, 04 |
+| 화면 ① 진입 | 단지명 검색(자동완성), 시도 → 시군구 선택, 시군구 × 월 히트맵 (**마지막, 조건부**) | 02, 03-C |
+| 화면 ② 지역 | 탭: 단지 목록 / 통계 / 거래 탐색(무한 스크롤) | 02, 03 |
+| 화면 ③ 단지 상세 | 요약 카드, 면적 타입 탭, 가격 차트(산점도 + p25~p75 밴드 + 중위가 + 역대 최고가 계단선), 거래량, 거래 내역 테이블, 기간 brush ↔ 요약·테이블·URL 연동, 테이블 → 차트 hover 하이라이트, 해제 / 신고가(+%) 표시 | 02, 03-A·B, 05 |
+| 공통 | URL 상태, loading / empty / error, 데이터 기준일, 해제 정보 없음(2020.02 이전) 안내 | 02-F0, 05 |
+| 데이터 파이프라인 | 초기 적재(로컬), 파티션 교체, 7개월 정기 / 24개월 월간 갱신(GitHub Actions) | 05, 06 |
+| 측정 | Frontend / API / DB baseline, 재현 가능한 벤치 스크립트 | CLAUDE 3.3 |
+| 배포 | Vercel + Neon | 0002 |
+
+### 제외 (Phase 2 / 3)
+
+지도, 단지 비교, 전월세, 전국, Redis, 로그인, 다크 모드, CSV 내보내기, 차트 ↔ 테이블 양방향 hover, 단지 메타(세대수), 사용자 인식 단위 단지 묶기, performance budget CI gate(baseline 확보 후 Phase 2 초입)
+
+---
+
+## 2. Milestones
+
+원칙: **각 마일스톤은 "동작 + 측정 + 기록"으로 끝난다.** 기록할 것이 없으면 다음으로 넘어간다.
+
+| # | 마일스톤 | 완료 조건 | 측정 / 기록 |
+|---|---|---|---|
+| M0 | 프로젝트 셋업 | git / GitHub repo, Next.js + TS strict, pnpm, ESLint / Prettier, Vitest, Docker Compose PostgreSQL, Drizzle, CI(type / lint / test / build) | **CI 실행 시간 baseline** |
+| M1 | 데이터 파이프라인 | 법정동 → regions, import script(retry / pagination / 키 마스킹 / 원본 캐시 / 파티션 교체 / zod 검증), 면적 타입 · 단지 파생 + 단위 테스트, **로컬 전체 적재 완료** | 적재 소요 시간, **실제 DB 크기 → Neon Free/Launch 결정(0002 Result)**, 과거 기간 `aptSeq` 일관성 |
+| M2 | Walking skeleton 배포 | Neon 복원, Vercel 배포, 최소 단지 상세(텍스트만), cron 정기 갱신 동작 | **cold start 실측 (0002 Result)**, 운영 vs 로컬 쿼리 지연 |
+| M3 | 단지 상세 ⭐ | 화면 ③ 전체 (위 표) | 쿼리별 baseline(EXPLAIN), Web Vitals, 차트 렌더링 시간, `docs/charts/` 첫 기록 |
+| M4 | 검색 / 진입 | 자동완성(IME 조합 처리, debounce, stale response 방지, 키보드 탐색), 지역 선택 | 검색 쿼리 latency, interaction 문제 해결 기록 |
+| M5 | 지역 페이지 | 단지 목록 / 통계 / 거래 탐색(offset 무한 스크롤로 시작) | 깊은 스크롤 baseline → keyset / virtualization 필요성 판단 근거 |
+| M6 | 히트맵 (조건부) | 화면 ① 히트맵 | ~17,000 셀 렌더링 / interaction 측정, 차트 설계 기록 |
+| M7 | MVP 마감 | DoD 점검, README(한 줄 소개 → 데모 → 성능 표 → 결정 → 스택), 데모 GIF | baseline 문서 정리 → Phase 2 시작점 |
+
+### 순서의 이유
+
+- **M1을 가장 먼저**: 전체 적재에 API 호출 3일이 걸린다. 일찍 시작해야 이후 마일스톤이 실데이터로 진행된다. DB 크기 실측이 인프라 결정(0002)을 마무리한다.
+- **M2를 화면보다 먼저 (walking skeleton)**: 배포 / cron / cold start 문제를 화면을 다 만든 뒤가 아니라 초기에 발견한다.
+- **M3(단지 상세)를 화면 중 첫 번째로**: 핵심 흐름이자 포트폴리오의 중심. 차트 / coordinated views 설계가 여기서 결정된다.
+- **M6을 마지막에**: 03-C 조건.
+
+### 범위 축소 순서 (MVP가 길어질 때)
+
+1. M6 히트맵 → Phase 3
+2. 테이블 → 차트 hover 하이라이트 → Phase 3
+3. 지역 페이지 통계 탭 → 최소 형태(차트 1개)
+
+단지 상세의 coordinated views, 가격 분포 밴드, 측정 / 기록은 축소하지 않는다 (포트폴리오 핵심).
+
+---
+
+## 3. MVP Definition of Done (CLAUDE.md 2.2 재확인)
+
+1. 검색 → 단지 상세 → 차트·테이블 탐색 흐름이 수도권 실데이터로 동작
+2. 지역 통계와 지역 거래 탐색 테이블 동작
+3. Frontend / API / DB baseline 측정값 문서화
+4. 배포 URL
