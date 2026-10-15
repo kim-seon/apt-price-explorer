@@ -22,10 +22,16 @@ export async function getAreaTypes(aptSeq: string): Promise<AreaTypeSummary[]> {
     max_area: string;
     trade_count: string;
   }>(sql`
-    SELECT a.label, a.min_area, a.max_area,
-      (SELECT count(*) FROM transactions t
-        WHERE t.apt_seq = a.apt_seq AND t.area_type_label = a.label AND NOT t.cancelled) AS trade_count
+    -- 거래 테이블을 한 번만 훑어 타입별 건수를 센다.
+    -- (이전: 타입마다 상관 서브쿼리로 전체 스캔 → 타입 5개면 5회. docs/performance/cases/02-area-types-query.md)
+    SELECT a.label, a.min_area, a.max_area, coalesce(c.trade_count, 0) AS trade_count
     FROM area_types a
+    LEFT JOIN (
+      SELECT area_type_label, count(*) AS trade_count
+      FROM transactions
+      WHERE apt_seq = ${aptSeq} AND NOT cancelled
+      GROUP BY area_type_label
+    ) c ON c.area_type_label = a.label
     WHERE a.apt_seq = ${aptSeq}
     ORDER BY a.min_area
   `);
