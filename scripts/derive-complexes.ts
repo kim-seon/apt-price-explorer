@@ -28,14 +28,17 @@ async function main() {
       await timed("complexes", async () => {
         await tx.execute(sql`DELETE FROM complexes`);
         await tx.execute(sql`
-          INSERT INTO complexes (apt_seq, name, build_year, sgg_code, umd_name, jibun)
+          INSERT INTO complexes
+            (apt_seq, name, build_year, sgg_code, umd_name, jibun, trade_count, last_deal_date)
           SELECT
             apt_seq,
             (array_agg(apt_name ORDER BY deal_date DESC))[1],
             max(build_year),
             mode() WITHIN GROUP (ORDER BY sgg_code),
             (array_agg(umd_name ORDER BY deal_date DESC))[1],
-            (array_agg(jibun ORDER BY deal_date DESC))[1]
+            (array_agg(jibun ORDER BY deal_date DESC))[1],
+            count(*) FILTER (WHERE NOT cancelled),
+            max(deal_date) FILTER (WHERE NOT cancelled)
           FROM transactions
           GROUP BY apt_seq
         `);

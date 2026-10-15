@@ -67,6 +67,10 @@ export const complexes = pgTable("complexes", {
   sggCode: char("sgg_code", { length: 5 }).notNull(),
   umdName: text("umd_name").notNull(),
   jibun: text("jibun"),
+  /** 해제 제외 전체 기간 거래 수. 검색 / 목록 정렬용 (파생 시 계산, 매 조회 집계 회피 — docs/08 M4) */
+  tradeCount: integer("trade_count").notNull().default(0),
+  /** 해제 제외 최근 계약일 */
+  lastDealDate: date("last_deal_date"),
 });
 
 /** 단지별 면적 타입. 인접 전용면적 차이 0.5㎡ 미만을 같은 타입으로 묶는다. */

@@ -20,7 +20,7 @@ import {
 import { requireEnv } from "./lib/env";
 import { CallBudgetExhausted, createMolitClient } from "./lib/molit-client";
 import { MolitQuotaError, normalizeItems } from "./lib/molit-parse";
-import { querySggCodes } from "./lib/regions";
+import { querySggCodes } from "../src/lib/regions";
 
 const INSERT_CHUNK = 1000;
 
