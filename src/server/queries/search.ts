@@ -21,7 +21,8 @@ export async function searchComplexes(
   limit = 10,
 ): Promise<ComplexSearchResult[]> {
   const pattern = escapeLike(normalizedQuery);
-  const result = await getDb().execute<{
+  const db = await getDb();
+  const result = await db.execute<{
     apt_seq: string;
     name: string;
     sido_name: string;

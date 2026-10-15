@@ -11,7 +11,8 @@ export type SidoGroup = {
 
 /** 진입 화면의 지역 선택용: 거래 데이터가 있는 시군구(일반구 단위)를 시도별로 묶는다 */
 export async function getRegionGroups(): Promise<SidoGroup[]> {
-  const rows = await getDb()
+  const db = await getDb();
+  const rows = await db
     .select({
       sggCode: regions.sggCode,
       sggName: regions.sggName,

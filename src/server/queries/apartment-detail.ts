@@ -16,7 +16,8 @@ export type AreaTypeSummary = {
 };
 
 export async function getAreaTypes(aptSeq: string): Promise<AreaTypeSummary[]> {
-  const result = await getDb().execute<{
+  const db = await getDb();
+  const result = await db.execute<{
     label: string;
     min_area: string;
     max_area: string;
@@ -67,7 +68,8 @@ export async function getMonthlyStats(
   label: string,
   fromDate: string,
 ): Promise<MonthlyStat[]> {
-  const result = await getDb().execute<{
+  const db = await getDb();
+  const result = await db.execute<{
     month: string;
     count: string;
     window_count: string;
@@ -141,7 +143,8 @@ export async function getTrades(
   label: string,
   fromDate: string,
 ): Promise<Trade[]> {
-  const result = await getDb().execute<{
+  const db = await getDb();
+  const result = await db.execute<{
     id: string;
     deal_date: string;
     price: number;
