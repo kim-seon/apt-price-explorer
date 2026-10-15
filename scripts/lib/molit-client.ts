@@ -3,6 +3,8 @@
 
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { promisify } from "node:util";
+import { gunzip, gzip } from "node:zlib";
 import { MolitApiError, MolitQuotaError, parsePage } from "./molit-parse";
 
 const ENDPOINT =
@@ -10,6 +12,10 @@ const ENDPOINT =
 const ROWS_PER_PAGE = 1000;
 const MAX_ATTEMPTS = 3;
 const TIMEOUT_MS = 30_000;
+
+// 원본 XML은 gzip으로 저장한다. 수도권 약 1만 파티션 기준 비압축 2.1GB → 약 130MB (압축률 약 17배 실측).
+const gzipAsync = promisify(gzip);
+const gunzipAsync = promisify(gunzip);
 
 /** 호출 예산 소진. 일일 한도에 닿기 전에 스스로 멈추기 위한 장치. */
 export class CallBudgetExhausted extends Error {}
@@ -74,20 +80,23 @@ export function createMolitClient(opts: {
   }
 
   async function getPage(sggCode: string, dealYm: string, page: number) {
-    const file = path.join(opts.cacheDir, `${sggCode}_${dealYm}_p${page}.xml`);
+    const base = path.join(opts.cacheDir, `${sggCode}_${dealYm}_p${page}.xml`);
     if (!opts.refresh) {
       try {
-        const [xml, info] = await Promise.all([
-          readFile(file, "utf8"),
-          stat(file),
+        const [buf, info] = await Promise.all([
+          readFile(`${base}.gz`),
+          stat(`${base}.gz`),
         ]);
-        return { xml, fetchedAt: info.mtime, fromCache: true };
+        return {
+          xml: (await gunzipAsync(buf)).toString("utf8"),
+          fetchedAt: info.mtime,
+        };
       } catch {}
     }
     const xml = await request(sggCode, dealYm, page);
     await mkdir(opts.cacheDir, { recursive: true });
-    await writeFile(file, xml);
-    return { xml, fetchedAt: new Date(), fromCache: false };
+    await writeFile(`${base}.gz`, await gzipAsync(xml));
+    return { xml, fetchedAt: new Date() };
   }
 
   async function fetchPartition(
