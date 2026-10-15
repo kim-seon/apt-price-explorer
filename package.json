@@ -13,14 +13,20 @@
     "test": "vitest run --passWithNoTests",
     "db:up": "docker compose up -d postgres",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "seed:regions": "tsx scripts/build-region-seed.ts",
+    "import:regions": "tsx scripts/import-regions.ts",
+    "import:transactions": "tsx scripts/import-transactions.ts",
+    "derive": "tsx scripts/derive-complexes.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
+    "fast-xml-parser": "^5.11.2",
     "next": "16.4.0",
     "pg": "^8.23.1",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
@@ -34,6 +40,7 @@
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.4"
   },
