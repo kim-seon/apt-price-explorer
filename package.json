@@ -18,7 +18,8 @@
     "import:regions": "tsx scripts/import-regions.ts",
     "import:transactions": "tsx scripts/import-transactions.ts",
     "derive": "tsx scripts/derive-complexes.ts",
-    "analyze:import": "tsx scripts/analyze-import-log.ts"
+    "analyze:import": "tsx scripts/analyze-import-log.ts",
+    "bench:lh": "tsx scripts/bench-lighthouse.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

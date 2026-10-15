@@ -34,6 +34,9 @@ npx lighthouse@12 "http://localhost:3100/apartments/11710-6266" --only-categorie
 | ECharts 청크 (모듈 import) | 227KB (전체의 56%) |
 | ECharts 청크 (전체 import, 비교용) | 404KB |
 
+> ⚠️ 위 LCP는 **시뮬레이션 스로틀링** 값이다. 이 방식은 HTML 스트리밍을 반영하지 못해 실제보다 크게 나온다 (관측값 357ms).
+> 실제 스로틀링(`--throttling-method=devtools`) 기준 baseline LCP는 **1,890ms**. 상세: `cases/01-suspense-split.md`
+
 ## 관찰된 병목 (개선 후보)
 
 1. **LCP는 데이터 대기**: LCP 요소가 헤더 문장(`header > p`)이다. 헤더가 차트·테이블과 같은 `<Suspense>` 안에 있어 무거운 쿼리(window function, 분위수)가 끝나야 표시된다. → Suspense 경계 분리, 쿼리 / 캐시 개선 후보

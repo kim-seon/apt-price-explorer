@@ -18,6 +18,10 @@ import { getComplex, getDataFreshness } from "@/server/queries/complexes";
 import { TradeExplorer } from "./trade-explorer";
 
 // 단지 상세 (docs/03-ux-design.md ③). 캐시는 아직 쓰지 않는다 — baseline 측정 후 결정.
+//
+// Suspense 경계를 둘로 나눈다 (docs/performance/frontend-baseline.md):
+// - 헤더: PK 조회 수준의 가벼운 쿼리만 기다린다 → 먼저 표시 (LCP 요소)
+// - 본문(타입 탭 · 차트 · 테이블): 분석 쿼리를 기다린 뒤 스트리밍
 
 export default function ApartmentPage({
   params,
@@ -25,14 +29,44 @@ export default function ApartmentPage({
 }: PageProps<"/apartments/[id]">) {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
-      <Suspense fallback={<DetailSkeleton />}>
-        <ApartmentDetail params={params} searchParams={searchParams} />
+      <Suspense fallback={<HeaderSkeleton />}>
+        <ApartmentHeader params={params} />
+      </Suspense>
+      <Suspense fallback={<BodySkeleton />}>
+        <ApartmentBody params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function ApartmentDetail({
+async function ApartmentHeader({
+  params,
+}: Pick<PageProps<"/apartments/[id]">, "params">) {
+  const { id } = await params;
+  const [complex, freshness] = await Promise.all([
+    getComplex(decodeURIComponent(id)),
+    getDataFreshness(),
+  ]);
+  if (!complex) notFound();
+
+  return (
+    <header>
+      <p className="text-sm text-neutral-500">
+        {complex.sidoName} {complex.sggName} {complex.umdName}
+      </p>
+      <h1 className="mt-1 text-2xl font-bold">{complex.name}</h1>
+      <p className="mt-1 text-sm text-neutral-500">
+        {complex.buildYear ? `${complex.buildYear}년 준공 · ` : ""}데이터 기준{" "}
+        {freshness ? new Date(freshness).toLocaleDateString("ko-KR") : "-"}
+        <span className="ml-1">
+          (최근 1~2개월은 신고 기한 때문에 거래가 추가될 수 있습니다)
+        </span>
+      </p>
+    </header>
+  );
+}
+
+async function ApartmentBody({
   params,
   searchParams,
 }: Pick<PageProps<"/apartments/[id]">, "params" | "searchParams">) {
@@ -40,12 +74,9 @@ async function ApartmentDetail({
   const aptSeq = decodeURIComponent(id);
   const query = parseApartmentParams(rawSearch);
 
-  const [complex, areaTypes, freshness] = await Promise.all([
-    getComplex(aptSeq),
-    getAreaTypes(aptSeq),
-    getDataFreshness(),
-  ]);
-  if (!complex) notFound();
+  const areaTypes = await getAreaTypes(aptSeq);
+  // 없는 단지는 헤더가 notFound()를 처리한다
+  if (areaTypes.length === 0) return null;
 
   // 기본 면적 타입: 거래가 가장 많은 타입 (docs/02 Decisions #5)
   const selected =
@@ -79,20 +110,6 @@ async function ApartmentDetail({
 
   return (
     <>
-      <header>
-        <p className="text-sm text-neutral-500">
-          {complex.sidoName} {complex.sggName} {complex.umdName}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold">{complex.name}</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {complex.buildYear ? `${complex.buildYear}년 준공 · ` : ""}데이터 기준{" "}
-          {freshness ? new Date(freshness).toLocaleDateString("ko-KR") : "-"}
-          <span className="ml-1">
-            (최근 1~2개월은 신고 기한 때문에 거래가 추가될 수 있습니다)
-          </span>
-        </p>
-      </header>
-
       <div className="sticky top-0 z-10 -mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
         <nav aria-label="면적 타입" className="flex flex-wrap gap-1">
           {areaTypes.map((t) => (
@@ -147,11 +164,28 @@ async function ApartmentDetail({
   );
 }
 
-function DetailSkeleton() {
+function HeaderSkeleton() {
+  // 실제 헤더와 같은 높이로 맞춰 레이아웃 이동(CLS)을 막는다
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="불러오는 중">
-      <Skeleton className="h-4 w-48" />
+    <div
+      className="space-y-2"
+      aria-busy="true"
+      aria-label="단지 정보 불러오는 중"
+    >
+      <Skeleton className="h-5 w-48" />
       <Skeleton className="h-8 w-72" />
+      <Skeleton className="h-5 w-96 max-w-full" />
+    </div>
+  );
+}
+
+function BodySkeleton() {
+  return (
+    <div
+      className="mt-4 space-y-4"
+      aria-busy="true"
+      aria-label="거래 데이터 불러오는 중"
+    >
       <Skeleton className="h-10 w-full" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
