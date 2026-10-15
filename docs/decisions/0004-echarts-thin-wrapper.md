@@ -24,4 +24,11 @@
 
 ## Result
 
-(모듈 import vs 전체 import 번들 크기 측정 결과 기록)
+2026-10-15, 프로덕션 빌드, 가장 큰 청크 기준:
+
+| import 방식 | 원본 | gzip |
+|---|---|---|
+| 전체 (`echarts`) | 1,221KB | 404KB |
+| 모듈 (`echarts/core` + 등록) | 676KB | 227KB |
+
+모듈 import로 **약 44% 감소**. 다만 여전히 페이지 JS(gzip 393KB)의 56% → 차트 지연 로딩이 다음 후보 (`docs/performance/frontend-baseline.md`).
