@@ -21,6 +21,8 @@ concurrency:
 
 jobs:
   refresh:
+    # 저장소 변수 REFRESH_ENABLED=true 일 때만 실행 (전체 적재 중 API 한도 공유 방지)
+    if: vars.REFRESH_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
