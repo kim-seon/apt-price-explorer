@@ -17,7 +17,8 @@
     "seed:regions": "tsx scripts/build-region-seed.ts",
     "import:regions": "tsx scripts/import-regions.ts",
     "import:transactions": "tsx scripts/import-transactions.ts",
-    "derive": "tsx scripts/derive-complexes.ts"
+    "derive": "tsx scripts/derive-complexes.ts",
+    "analyze:import": "tsx scripts/analyze-import-log.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.4",
