@@ -1,0 +1,42 @@
+name: Refresh data
+
+# 정기 갱신 (docs/05 §3)
+# - 매일: 최근 7개월 재수집 (해제 / 등기 반영 p99 커버)
+# - 매월 1일: 최근 24개월 재수집 (해제 최대 지연 대응)
+# 주의: 로컬 개발과 같은 API 키의 일일 호출 한도(10,000회)를 공유한다. 7개월 ≈ 581회, 24개월 ≈ 1,992회.
+
+on:
+  schedule:
+    - cron: "0 18 * * *" # 매일 03:00 KST
+    - cron: "0 19 1 * *" # 매월 1일 04:00 KST
+  workflow_dispatch:
+    inputs:
+      months:
+        description: "재수집할 최근 개월 수"
+        default: "7"
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DATABASE_URL: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
+      DATA_GO_KR_SERVICE_KEY: ${{ secrets.DATA_GO_KR_SERVICE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Import recent months
+        run: |
+          MONTHS="${{ github.event.inputs.months }}"
+          if [ "${{ github.event.schedule }}" = "0 19 1 * *" ]; then MONTHS=24; fi
+          pnpm import:transactions --recent "${MONTHS:-7}" --refresh --max-calls 2500
+      - run: pnpm derive
