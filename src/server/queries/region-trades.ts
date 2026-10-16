@@ -74,9 +74,12 @@ export async function getRegionTrades(
   sggCode: string,
   filters: TradeFilters,
   offset: number,
-  today = new Date(),
+  today?: Date,
 ): Promise<RegionTradePage> {
+  // 현재 시각은 getDb()(connection())로 요청 시점임을 표시한 뒤 읽는다.
+  // 기본 인자(today = new Date())는 함수 본문보다 먼저 평가되어 prerender 단계에서 막힌다.
   const db = await getDb();
+  today ??= new Date();
   const where = whereClause(sggCode, filters, today);
   const column = SORT_COLUMNS[filters.sort.key];
   const direction = filters.sort.desc ? desc : asc;

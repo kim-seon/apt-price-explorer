@@ -10,8 +10,11 @@
   --color-brand-soft: var(--brand-soft);
   --color-brand-foreground: var(--brand-foreground);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  /* 이전에는 --font-sans가 자기 자신을 참조해 시스템 폰트로 떨어지고 있었다 (Geist는 받기만 하고 미사용) */
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
