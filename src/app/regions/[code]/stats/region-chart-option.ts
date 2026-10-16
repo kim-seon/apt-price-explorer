@@ -8,7 +8,7 @@ import type { RegionMonthlyStat } from "@/server/queries/region-stats";
 // 단지 상세 차트와 같은 문법: 위 grid 가격 분포(밴드 + 중위가), 아래 grid 거래량, x축(시간)만 공유.
 
 /** 처음 보여줄 기간. 전체(2006~)는 슬라이더로 넓힌다 */
-const INITIAL_YEARS = 10;
+export const INITIAL_YEARS = 10;
 /**
  * 신고 기한(계약 후 30일) 때문에 아직 거래가 더 들어올 수 있는 최근 개월 수 (이번 달 + 지난달).
  * 이 구간은 거래량을 흐리게, 중위가를 점선으로 그려 "급감"으로 읽히지 않게 한다.

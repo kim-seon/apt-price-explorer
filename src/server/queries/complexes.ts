@@ -14,6 +14,8 @@ export async function getComplex(aptSeq: string) {
       buildYear: complexes.buildYear,
       umdName: complexes.umdName,
       sggCode: complexes.sggCode,
+      jibun: complexes.jibun,
+      tradeCount: complexes.tradeCount,
       sidoName: regions.sidoName,
       sggName: regions.sggName,
     })
@@ -51,4 +53,17 @@ export async function getDataFreshness() {
     sql`SELECT max(fetched_at) AS fetched_at FROM import_partitions`,
   );
   return result.rows[0]?.fetched_at ?? null;
+}
+
+/**
+ * 진입 화면의 "거래가 많은 단지" 바로가기. 검색 기록이 없으므로 "인기 검색어" 대신
+ * 실제 데이터(해제 제외 전체 기간 거래 수)로 고른다.
+ */
+export async function getMostTradedComplexes(limit = 8) {
+  const db = await getDb();
+  return db
+    .select({ aptSeq: complexes.aptSeq, name: complexes.name })
+    .from(complexes)
+    .orderBy(desc(complexes.tradeCount))
+    .limit(limit);
 }

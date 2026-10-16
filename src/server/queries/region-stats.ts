@@ -98,3 +98,55 @@ export async function getDongSummaries(
     prevMedian: round(r.prev_median),
   }));
 }
+
+export type RegionSummary = {
+  /** 최근 1년 / 직전 1년 거래 수 */
+  count: number;
+  prevCount: number;
+  /** 최근 1년 / 직전 1년 전용 3.3㎡당 중위가 */
+  median: number | null;
+  prevMedian: number | null;
+  /** 최근 1년 거래 중위가 (만원) */
+  medianPrice: number | null;
+  prevMedianPrice: number | null;
+};
+
+/** 통계 탭 KPI 카드: 최근 1년과 직전 1년 비교 */
+export async function getRegionSummary(
+  sggCode: string,
+  dong: string | undefined,
+): Promise<RegionSummary> {
+  const db = await getDb();
+  const dongFilter = dong ? sql`AND umd_name = ${dong}` : sql``;
+  const lastYear = sql`deal_date >= current_date - interval '1 year'`;
+  const prevYear = sql`deal_date >= current_date - interval '2 years' AND deal_date < current_date - interval '1 year'`;
+  const result = await db.execute<{
+    n: string;
+    prev_n: string;
+    median: number | null;
+    prev_median: number | null;
+    median_price: number | null;
+    prev_median_price: number | null;
+  }>(sql`
+    SELECT
+      count(*) FILTER (WHERE ${lastYear}) AS n,
+      count(*) FILTER (WHERE ${prevYear}) AS prev_n,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY ${PER_PYEONG}) FILTER (WHERE ${lastYear}) AS median,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY ${PER_PYEONG}) FILTER (WHERE ${prevYear}) AS prev_median,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY price) FILTER (WHERE ${lastYear}) AS median_price,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY price) FILTER (WHERE ${prevYear}) AS prev_median_price
+    FROM transactions
+    WHERE sgg_code = ${sggCode} ${dongFilter} AND NOT cancelled
+      AND deal_date >= current_date - interval '2 years'
+  `);
+  const r = result.rows[0];
+  const round = (v: number | null) => (v === null ? null : Math.round(v));
+  return {
+    count: Number(r.n),
+    prevCount: Number(r.prev_n),
+    median: round(r.median),
+    prevMedian: round(r.prev_median),
+    medianPrice: round(r.median_price),
+    prevMedianPrice: round(r.prev_median_price),
+  };
+}

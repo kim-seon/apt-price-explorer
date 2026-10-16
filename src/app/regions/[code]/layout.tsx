@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SGG_CODE } from "@/lib/region-params";
 import { getDongs, getRegion } from "@/server/queries/regions";
@@ -15,7 +15,7 @@ export default function RegionLayout({
   children,
 }: LayoutProps<"/regions/[code]">) {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <Suspense fallback={<HeaderSkeleton />}>
         <RegionHeader params={params} />
       </Suspense>
@@ -37,34 +37,41 @@ async function RegionHeader({
   if (!region) notFound();
 
   return (
-    <header className="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          <Link href="/" className="hover:text-foreground">
-            지역 선택
-          </Link>
-          <span aria-hidden> › </span>
-          {region.sidoName}
-        </p>
-        <h1 className="mt-1 text-2xl font-bold">{region.sggName}</h1>
+    <header>
+      <Breadcrumb
+        items={[
+          { label: "홈", href: "/" },
+          { label: "지역 통계", href: "/#regions" },
+          { label: region.sidoName },
+          { label: region.sggName },
+        ]}
+      />
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+            {region.sggName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {region.sidoName} {region.sggName} 아파트 매매 실거래 동향
+          </p>
+        </div>
+        <DongSelect dongs={dongs} />
       </div>
-      <DongSelect dongs={dongs} />
     </header>
   );
 }
 
 function HeaderSkeleton() {
   return (
-    <div
-      className="flex items-end justify-between"
-      aria-busy="true"
-      aria-label="지역 정보 불러오는 중"
-    >
-      <div className="space-y-2">
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-8 w-32" />
+    <div aria-busy="true" aria-label="지역 정보 불러오는 중">
+      <Skeleton className="h-4 w-56" />
+      <div className="mt-3 flex items-end justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-5 w-64" />
+        </div>
+        <Skeleton className="h-8 w-40" />
       </div>
-      <Skeleton className="h-9 w-40" />
     </div>
   );
 }

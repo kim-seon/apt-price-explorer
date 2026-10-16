@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   PERIODS,
@@ -34,7 +35,7 @@ export default function ApartmentPage({
   searchParams,
 }: PageProps<"/apartments/[id]">) {
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
       <Suspense fallback={<HeaderSkeleton />}>
         <ApartmentHeader params={params} />
       </Suspense>
@@ -55,34 +56,48 @@ async function ApartmentHeader({
   ]);
   if (!complex) notFound();
 
+  const sggName = displaySggName(complex.sggName);
+  const regionHref = `/regions/${complex.sggCode}`;
   return (
     <header>
-      <p className="text-sm text-muted-foreground">
-        {complex.sidoName}{" "}
-        <Link
-          href={`/regions/${complex.sggCode}`}
-          className="underline-offset-2 hover:text-foreground hover:underline"
-        >
-          {displaySggName(complex.sggName)}
-        </Link>{" "}
-        <Link
-          href={`/regions/${complex.sggCode}?dong=${encodeURIComponent(complex.umdName)}`}
-          className="underline-offset-2 hover:text-foreground hover:underline"
-        >
-          {complex.umdName}
-        </Link>
-      </p>
-      <h1 className="mt-1 text-2xl font-bold">{complex.name}</h1>
+      <Breadcrumb
+        items={[
+          { label: "홈", href: "/" },
+          { label: complex.sidoName },
+          { label: sggName, href: regionHref },
+          {
+            label: complex.umdName,
+            href: `${regionHref}?dong=${encodeURIComponent(complex.umdName)}`,
+          },
+          { label: complex.name },
+        ]}
+      />
+      <h1 className="mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl">
+        {complex.name}
+      </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {complex.buildYear ? `${complex.buildYear}년 준공 · ` : ""}데이터 기준{" "}
-        {freshness ? new Date(freshness).toLocaleDateString("ko-KR") : "-"}
-        <span className="ml-1">
-          (최근 1~2개월은 신고 기한 때문에 거래가 추가될 수 있습니다)
-        </span>
+        {complex.sidoName} {sggName} {complex.umdName} {complex.jibun ?? ""}
       </p>
+      <ul className="mt-3 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+        {complex.buildYear && (
+          <li className={metaChip}>{complex.buildYear}년 준공</li>
+        )}
+        <li className={metaChip}>
+          누적 거래 {complex.tradeCount.toLocaleString("ko-KR")}건
+        </li>
+        <li
+          className={metaChip}
+          title="최근 1~2개월은 신고 기한(계약 후 30일) 때문에 거래가 추가될 수 있습니다"
+        >
+          데이터 기준{" "}
+          {freshness ? new Date(freshness).toLocaleDateString("ko-KR") : "-"}
+        </li>
+      </ul>
     </header>
   );
 }
+
+const metaChip = "rounded-md bg-muted px-2 py-1";
 
 async function ApartmentBody({
   params,
@@ -126,9 +141,26 @@ async function ApartmentBody({
     return `/apartments/${encodeURIComponent(aptSeq)}${qs ? `?${qs}` : ""}`;
   };
 
+  // 기간 프리셋은 서버 재렌더(데이터 범위가 바뀜)라 링크로 두고, 차트 카드 머리에 넣는다 (시안 02)
+  const periodNav = (
+    <nav aria-label="기간" className={segmentRootClass}>
+      {PERIODS.map((p) => (
+        <Link
+          key={p.value}
+          href={href({ period: p.value })}
+          aria-current={p.value === query.period ? "page" : undefined}
+          className={segmentItemClass}
+          scroll={false}
+        >
+          {p.label}
+        </Link>
+      ))}
+    </nav>
+  );
+
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-4 mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="sticky top-14 z-10 -mx-4 mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
         {/* 모바일에서는 면적 타입을 한 줄로 두고 가로로 넘긴다 */}
         <nav
           aria-label="면적 타입"
@@ -149,25 +181,13 @@ async function ApartmentBody({
             </Link>
           ))}
         </nav>
-        <nav aria-label="기간" className={segmentRootClass}>
-          {PERIODS.map((p) => (
-            <Link
-              key={p.value}
-              href={href({ period: p.value })}
-              aria-current={p.value === query.period ? "page" : undefined}
-              className={segmentItemClass}
-              scroll={false}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </nav>
       </div>
 
       {trades.length === 0 ? (
-        <p className="mt-10 text-center text-muted-foreground">
-          이 기간에는 거래가 없습니다.
-        </p>
+        <div className="mt-10 flex flex-col items-center gap-3 text-muted-foreground">
+          <p>이 기간에는 거래가 없습니다. 기간을 넓혀 보세요.</p>
+          {periodNav}
+        </div>
       ) : (
         <TradeExplorer
           // 타입 / 기간이 바뀌면 brush 상태를 초기화한다
@@ -180,6 +200,8 @@ async function ApartmentBody({
             query.from && query.to ? { from: query.from, to: query.to } : null
           }
           initialShowCancelled={query.cancelled}
+          areaLabel={selected ? `전용 ${selected.label}㎡` : ""}
+          periodNav={periodNav}
         />
       )}
     </>
@@ -194,8 +216,9 @@ function HeaderSkeleton() {
       aria-busy="true"
       aria-label="단지 정보 불러오는 중"
     >
-      <Skeleton className="h-5 w-48" />
-      <Skeleton className="h-8 w-72" />
+      <Skeleton className="h-4 w-64" />
+      <Skeleton className="h-9 w-72" />
+      <Skeleton className="h-5 w-56" />
       <Skeleton className="h-5 w-96 max-w-full" />
     </div>
   );

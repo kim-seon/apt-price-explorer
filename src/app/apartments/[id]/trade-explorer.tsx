@@ -3,6 +3,8 @@
 import type { ECharts } from "echarts/core";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { EChart } from "@/components/charts/echarts";
+import { Card, CardHeader } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 import { Switch } from "@/components/ui/switch";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import type { MonthlyStat, Trade } from "@/server/queries/apartment-detail";
@@ -26,6 +28,10 @@ type Props = {
   currentMonth: string;
   initialRange: MonthRange | null;
   initialShowCancelled: boolean;
+  /** "전용 84㎡" — 카드 설명용 */
+  areaLabel: string;
+  /** 기간 프리셋 링크 (서버 재렌더). 차트 카드 머리에 둔다 */
+  periodNav: React.ReactNode;
 };
 
 const monthStartMs = (month: string) =>
@@ -57,6 +63,8 @@ export function TradeExplorer({
   currentMonth,
   initialRange,
   initialShowCancelled,
+  areaLabel,
+  periodNav,
 }: Props) {
   const [range, setRange] = useState<MonthRange | null>(initialRange);
   const [showCancelled, setShowCancelled] = useState(initialShowCancelled);
@@ -148,30 +156,40 @@ export function TradeExplorer({
     chartRef.current?.dispatchAction({ type: "dataZoom", start: 0, end: 100 });
   };
 
-  return (
-    <section className="mt-6 space-y-6">
-      <SummaryCards summary={summary} />
+  const shownRange = range ?? bounds;
+  const basis = `${areaLabel} · ${shownRange.from.replace("-", ".")} ~ ${shownRange.to.replace("-", ".")}${range ? " (선택)" : ""}`;
 
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold">가격 추이</h2>
-          <label className="flex items-center gap-2 text-sm">
-            <Switch
-              checked={showCancelled}
-              onCheckedChange={(checked) => {
-                setShowCancelled(checked);
-                // 옵션이 다시 만들어지므로 현재 brush 위치를 옵션에 반영해 유지한다
-                setOptionZoom(range);
-                patchUrl({ cancelled: checked ? "1" : null });
-              }}
-            />
-            해제 거래 표시
-          </label>
-        </div>
+  return (
+    <div className="mt-5 space-y-4">
+      <SummaryCards summary={summary} basis={basis} />
+
+      <Card aria-labelledby="price-trend-heading">
+        <CardHeader
+          id="price-trend-heading"
+          title="실거래가 추이"
+          description={basis}
+          actions={
+            <>
+              {periodNav}
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Switch
+                  checked={showCancelled}
+                  onCheckedChange={(checked) => {
+                    setShowCancelled(checked);
+                    // 옵션이 다시 만들어지므로 현재 brush 위치를 옵션에 반영해 유지한다
+                    setOptionZoom(range);
+                    patchUrl({ cancelled: checked ? "1" : null });
+                  }}
+                />
+                해제 거래
+              </label>
+            </>
+          }
+        />
         <EChart
           option={option}
           onReady={handleReady}
-          className="mt-2 h-[340px] w-full sm:h-[420px]"
+          className="mt-3 h-[340px] w-full sm:h-[420px]"
           ariaLabel="면적 타입별 거래가 추이와 월별 거래량. 아래 거래 내역 표에서 같은 데이터를 확인할 수 있습니다."
         />
         <p className="mt-1 text-xs text-muted-foreground">
@@ -179,77 +197,90 @@ export function TradeExplorer({
           2020년 2월 이전 거래는 해제 정보가 없어 해제된 거래가 포함되어 있을 수
           있습니다.
         </p>
-      </div>
+      </Card>
 
-      <div>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold">
-            거래 내역{" "}
-            <span className="font-normal text-muted-foreground">
-              {inRange.length}건
-            </span>
-          </h2>
-          {range && (
-            <p className="text-sm text-muted-foreground">
-              {range.from.replace("-", ".")} ~ {range.to.replace("-", ".")}{" "}
-              선택됨{" "}
+      <Card aria-labelledby="trades-heading">
+        <CardHeader
+          id="trades-heading"
+          title={
+            <>
+              실거래 내역{" "}
+              <span className="font-normal text-muted-foreground">
+                {inRange.length.toLocaleString("ko-KR")}건
+              </span>
+            </>
+          }
+          description={basis}
+          actions={
+            range && (
               <button
                 type="button"
                 onClick={resetRange}
-                className="underline underline-offset-2"
+                className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground"
               >
-                선택 해제
+                기간 선택 해제
               </button>
-            </p>
-          )}
-        </div>
+            )
+          }
+        />
         <TradeTable trades={inRange} onHover={highlight} />
-      </div>
-    </section>
+      </Card>
+    </div>
   );
 }
 
-function SummaryCards({ summary }: { summary: ReturnType<typeof summarize> }) {
-  const items = [
-    {
-      label: "최근 거래",
-      value: summary.latest ? formatPrice(summary.latest.price) : "-",
-      note: summary.latest ? formatShortDate(summary.latest.dealDate) : "",
-    },
-    {
-      label: "최고가",
-      value: summary.highest ? formatPrice(summary.highest.price) : "-",
-      note: summary.highest ? formatShortDate(summary.highest.dealDate) : "",
-    },
-    {
-      label: "거래",
-      value: `${summary.count.toLocaleString("ko-KR")}건`,
-      note: "해제 제외",
-    },
-    {
-      label: "3.3㎡당 (전용, 중위)",
-      value: summary.medianPerPyeong
-        ? formatPrice(summary.medianPerPyeong)
-        : "-",
-      note: "",
-    },
-  ];
+function SummaryCards({
+  summary,
+  basis,
+}: {
+  summary: ReturnType<typeof summarize>;
+  basis: string;
+}) {
+  const latest = summary.latest;
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="rounded-lg border border-border bg-card p-3"
-        >
-          <dt className="text-xs text-muted-foreground">{item.label}</dt>
-          <dd className="mt-1 text-lg font-semibold tabular-nums">
-            {item.value}
-          </dd>
-          <dd className="text-xs text-muted-foreground tabular-nums">
-            {item.note}
-          </dd>
-        </div>
-      ))}
+    // 모두 선택 기간(brush) 기준. 해제 거래 제외
+    <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <StatCard
+        label="최근 실거래가"
+        basis={latest ? formatShortDate(latest.dealDate) : basis}
+        value={latest ? formatPrice(latest.price) : "-"}
+        footer={
+          latest && (
+            <span className="text-muted-foreground">
+              {latest.area.toFixed(2)}㎡ · {latest.floor ?? "-"}층
+            </span>
+          )
+        }
+      />
+      <StatCard
+        label="최고가"
+        basis={
+          summary.highest ? formatShortDate(summary.highest.dealDate) : basis
+        }
+        value={summary.highest ? formatPrice(summary.highest.price) : "-"}
+        footer={
+          latest &&
+          summary.highest &&
+          latest !== summary.highest && (
+            <span className="text-muted-foreground">
+              최근 거래는 최고가의{" "}
+              {Math.round((latest.price / summary.highest.price) * 100)}%
+            </span>
+          )
+        }
+      />
+      <StatCard
+        label="거래량"
+        basis="선택 기간 · 해제 제외"
+        value={`${summary.count.toLocaleString("ko-KR")}건`}
+      />
+      <StatCard
+        label="3.3㎡당 중위가"
+        basis="선택 기간 · 전용면적 기준"
+        value={
+          summary.medianPerPyeong ? formatPrice(summary.medianPerPyeong) : "-"
+        }
+      />
     </dl>
   );
 }

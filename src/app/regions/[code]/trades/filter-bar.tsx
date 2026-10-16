@@ -32,7 +32,7 @@ export function FilterBar({
     filters.priceMin !== undefined || filters.priceMax !== undefined;
 
   return (
-    <div className="sticky top-0 z-10 -mx-4 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
+    <div className="sticky top-14 z-10 -mx-4 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         {/* 모바일에서는 한 줄로 두고 가로로 넘긴다 */}
         <div

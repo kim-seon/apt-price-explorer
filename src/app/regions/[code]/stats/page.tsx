@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { tableClass } from "@/components/ui/data-table";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Delta } from "@/components/ui/delta";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatPercent, formatPrice } from "@/lib/format";
+import { StatCard } from "@/components/ui/stat-card";
+import { formatPrice } from "@/lib/format";
 import { parseSharedRegionParams } from "@/lib/region-params";
 import { cn } from "@/lib/utils";
 import {
   getDongSummaries,
   getRegionMonthlyStats,
+  getRegionSummary,
 } from "@/server/queries/region-stats";
 import { RegionChart } from "./region-chart";
 
@@ -19,14 +23,73 @@ export default function RegionStatsPage({
   searchParams,
 }: PageProps<"/regions/[code]/stats">) {
   return (
-    <>
-      <Suspense fallback={<Skeleton className="mt-4 h-[460px] w-full" />}>
+    <div className="mt-5 space-y-4">
+      <Suspense fallback={<KpiSkeleton />}>
+        <Kpis params={params} searchParams={searchParams} />
+      </Suspense>
+      <Suspense fallback={<Skeleton className="h-[500px] w-full rounded-xl" />}>
         <MonthlyChart params={params} searchParams={searchParams} />
       </Suspense>
-      <Suspense fallback={<Skeleton className="mt-8 h-64 w-full" />}>
+      <Suspense fallback={<Skeleton className="h-64 w-full rounded-xl" />}>
         <DongTable params={params} searchParams={searchParams} />
       </Suspense>
-    </>
+    </div>
+  );
+}
+
+async function Kpis({
+  params,
+  searchParams,
+}: PageProps<"/regions/[code]/stats">) {
+  const [{ code }, rawSearch] = await Promise.all([params, searchParams]);
+  const { dong } = parseSharedRegionParams(rawSearch);
+  const s = await getRegionSummary(code, dong);
+  const ratio = (a: number | null, b: number | null) =>
+    a !== null && b ? a / b - 1 : null;
+  const basis = `최근 1년${dong ? ` · ${dong}` : ""}`;
+  return (
+    // 모바일에서는 카드를 가로로 넘긴다 (세로로 쌓으면 차트가 화면 아래로 밀린다)
+    <dl className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 [&>*]:w-[72%] [&>*]:shrink-0 [&>*]:snap-start sm:[&>*]:w-auto">
+      <StatCard
+        label="중위 거래가"
+        basis={`${basis} · 면적 무관`}
+        value={s.medianPrice === null ? "-" : formatPrice(s.medianPrice)}
+        footer={
+          <Delta
+            ratio={ratio(s.medianPrice, s.prevMedianPrice)}
+            label="전년 대비"
+          />
+        }
+      />
+      <StatCard
+        label="거래량"
+        basis={`${basis} · 해제 제외`}
+        value={`${s.count.toLocaleString("ko-KR")}건`}
+        footer={<Delta ratio={ratio(s.count, s.prevCount)} label="전년 대비" />}
+      />
+      <StatCard
+        label="3.3㎡당 중위가"
+        basis={`${basis} · 전용면적 기준`}
+        value={s.median === null ? "-" : formatPrice(s.median)}
+        footer={
+          <Delta ratio={ratio(s.median, s.prevMedian)} label="전년 대비" />
+        }
+      />
+    </dl>
+  );
+}
+
+function KpiSkeleton() {
+  return (
+    <div
+      className="grid gap-3 sm:grid-cols-3"
+      aria-busy="true"
+      aria-label="지표 불러오는 중"
+    >
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className="h-[124px] rounded-xl" />
+      ))}
+    </div>
   );
 }
 
@@ -41,27 +104,29 @@ async function MonthlyChart({
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <section aria-labelledby="monthly-heading" className="mt-4">
-      <h2 id="monthly-heading" className="font-semibold">
-        월별 거래가와 거래량{dong ? ` · ${dong}` : ""}
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        면적이 섞여 있어 전용 3.3㎡당 가격으로 비교합니다. 해제 거래 제외, 거래
-        5건 미만인 달은 가격을 표시하지 않습니다. 최근 2개월(점선 · 흐린 막대)은
-        신고 기한 전이라 거래가 더 늘어날 수 있습니다.
-      </p>
+    <Card aria-labelledby="monthly-heading">
       {stats.length === 0 ? (
-        <p className="mt-10 text-center text-muted-foreground">
-          거래가 없습니다.
-        </p>
+        <>
+          <CardHeader id="monthly-heading" title="시세 추이" />
+          <p className="mt-10 mb-6 text-center text-muted-foreground">
+            거래가 없습니다.
+          </p>
+        </>
       ) : (
         <RegionChart
           stats={stats}
           currentMonth={currentMonth}
           label={dong ?? "지역"}
+          title={`시세 추이${dong ? ` · ${dong}` : ""}`}
+          description="전용 3.3㎡당 · 월별 · 해제 거래 제외"
         />
       )}
-    </section>
+      <p className="mt-2 text-xs text-muted-foreground">
+        면적이 섞여 있어 전용 3.3㎡당 가격으로 비교합니다. 거래 5건 미만인 달은
+        가격을 표시하지 않습니다. 최근 2개월(점선 · 흐린 막대)은 신고 기한
+        전이라 거래가 더 늘어날 수 있습니다.
+      </p>
+    </Card>
   );
 }
 
@@ -75,10 +140,12 @@ async function DongTable({
   const maxCount = Math.max(1, ...rows.map((r) => r.count));
 
   return (
-    <section aria-labelledby="dong-heading" className="mt-8">
-      <h2 id="dong-heading" className="font-semibold">
-        법정동별 최근 1년
-      </h2>
+    <Card aria-labelledby="dong-heading">
+      <CardHeader
+        id="dong-heading"
+        title="법정동별 주요 지표"
+        description="최근 1년 · 해제 거래 제외 · 법정동을 누르면 해당 동의 추이를 봅니다"
+      />
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
           최근 2년간 거래가 없습니다.
@@ -149,7 +216,7 @@ async function DongTable({
                       {r.median === null ? "-" : formatPrice(r.median)}
                     </td>
                     <td className={cn(tableClass.td, tableClass.numeric)}>
-                      <Change ratio={change} />
+                      <Delta ratio={change} />
                     </td>
                   </tr>
                 );
@@ -162,27 +229,6 @@ async function DongTable({
         전년 대비는 직전 1년 중위가와 비교합니다. 그 기간에 거래된 단지·면적
         구성이 달라도 값이 바뀌므로 개별 단지의 시세 변화와는 다를 수 있습니다.
       </p>
-    </section>
-  );
-}
-
-/** 상승 ▲ / 하락 ▼ — 색만으로 구분하지 않도록 기호를 함께 쓴다 (국내 관례: 상승 붉은색, 하락 파란색) */
-function Change({ ratio }: { ratio: number | null }) {
-  if (ratio === null) return <span className="text-muted-foreground">-</span>;
-  const up = ratio > 0;
-  const flat = Math.abs(ratio) < 0.0005;
-  return (
-    <span
-      className={cn(
-        flat
-          ? "text-muted-foreground"
-          : up
-            ? "text-destructive"
-            : "text-brand-foreground",
-      )}
-    >
-      <span aria-hidden>{flat ? "" : up ? "▲ " : "▼ "}</span>
-      {formatPercent(ratio)}
-    </span>
+    </Card>
   );
 }

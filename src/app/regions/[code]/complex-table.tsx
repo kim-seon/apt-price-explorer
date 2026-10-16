@@ -12,6 +12,7 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useState } from "react";
+import { Card, CardHeader } from "@/components/ui/card";
 import { ariaSort, SortButton, tableClass } from "@/components/ui/data-table";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import {
@@ -157,19 +158,20 @@ export function ComplexTable({
   });
 
   return (
-    <section aria-labelledby="complex-count" className="mt-4">
-      <p id="complex-count" className="text-sm text-muted-foreground">
-        단지{" "}
-        <b className="text-foreground">
-          {complexes.length.toLocaleString("ko-KR")}
-        </b>
-        개
-        <span className="hidden sm:inline">
-          {" "}
-          · 해제 거래 제외 · 3.3㎡당은 전용면적 기준
-        </span>
-      </p>
-      <div className={cn(tableClass.wrapper, "mt-2")}>
+    <Card aria-labelledby="complex-count" className="mt-5">
+      <CardHeader
+        id="complex-count"
+        title={
+          <>
+            단지 목록{" "}
+            <span className="font-normal text-muted-foreground">
+              {complexes.length.toLocaleString("ko-KR")}개
+            </span>
+          </>
+        }
+        description="해제 거래 제외 · 3.3㎡당은 최근 1년 전용면적 기준 · 헤더를 눌러 정렬"
+      />
+      <div className={cn(tableClass.wrapper, "mt-3")}>
         <table className={tableClass.table}>
           <thead className={tableClass.thead}>
             {table.getHeaderGroups().map((group) => (
@@ -228,6 +230,6 @@ export function ComplexTable({
           </tbody>
         </table>
       </div>
-    </section>
+    </Card>
   );
 }

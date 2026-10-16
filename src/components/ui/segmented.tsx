@@ -19,7 +19,8 @@ export function Segmented<T extends string>({
   size = "default",
 }: {
   label: string;
-  value: T;
+  /** 빈 문자열이면 선택 없음 (예: 사용자가 차트 범위를 직접 바꾼 경우) */
+  value: T | "";
   options: readonly SegmentOption<T>[];
   onChange: (value: T) => void;
   className?: string;
@@ -29,7 +30,7 @@ export function Segmented<T extends string>({
   return (
     <ToggleGroup
       aria-label={label}
-      value={[value]}
+      value={value ? [value] : []}
       // 눌린 항목을 다시 눌러도 선택 해제하지 않는다 (항상 하나 선택)
       onValueChange={(next) => {
         if (next[0]) onChange(next[0] as T);

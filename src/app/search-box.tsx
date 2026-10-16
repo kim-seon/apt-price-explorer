@@ -17,7 +17,13 @@ const DEBOUNCE_MS = 150;
 
 type Status = "idle" | "loading" | "error";
 
-export function SearchBox() {
+export function SearchBox({
+  variant = "hero",
+}: {
+  /** hero: 진입 화면의 큰 검색창 / compact: 상단 바 */
+  variant?: "hero" | "compact";
+} = {}) {
+  const compact = variant === "compact";
   const router = useRouter();
   const listboxId = useId();
   const [value, setValue] = useState("");
@@ -119,7 +125,9 @@ export function SearchBox() {
           showList && active >= 0 ? optionId(active) : undefined
         }
         autoComplete="off"
-        placeholder="단지명으로 검색 (예: 래미안, 헬리오시티)"
+        placeholder={
+          compact ? "단지명 검색" : "단지명으로 검색 (예: 래미안, 헬리오시티)"
+        }
         value={value}
         onChange={(e) => {
           setValue(e.target.value);
@@ -128,15 +136,27 @@ export function SearchBox() {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
-        className="h-12 w-full rounded-lg border border-input bg-card pr-4 pl-11 text-base shadow-xs outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+        className={
+          compact
+            ? "h-9 w-full rounded-lg border border-input bg-muted/60 pr-3 pl-9 text-sm outline-none focus:border-ring focus:bg-card focus:ring-3 focus:ring-ring/20"
+            : "h-14 w-full rounded-xl border border-input bg-card pr-4 pl-12 text-base shadow-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+        }
       />
       <Search
         aria-hidden
-        className="pointer-events-none absolute top-3.5 left-4 size-5 text-muted-foreground"
+        className={
+          compact
+            ? "pointer-events-none absolute top-2.5 left-3 size-4 text-muted-foreground"
+            : "pointer-events-none absolute top-4.5 left-4.5 size-5 text-muted-foreground"
+        }
       />
 
       {showList && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
+        <div
+          className={`absolute z-30 mt-2 overflow-hidden rounded-lg border border-border bg-popover shadow-lg ${
+            compact ? "right-0 w-[min(28rem,calc(100vw-2rem))]" : "w-full"
+          }`}
+        >
           <ul
             id={listboxId}
             role="listbox"
