@@ -25,7 +25,7 @@
 
 - 면적 타입 / 기간 프리셋 변경: URL search params → 서버 재렌더
 - brush 범위 / 해제 거래 표시: URL에 기록하되 서버 왕복 없이 클라이언트 반영
-- TanStack Query는 사용하지 않는다 (필요해지면 재검토)
+- TanStack Query는 사용하지 않는다 (필요해지면 재검토) → 지역 거래 탐색에서만 도입: 0006
 
 ## Reason
 
