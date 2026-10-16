@@ -17,3 +17,8 @@ export function querySggCodes(rows: SggRow[]): string[] {
     )
     .sort();
 }
+
+/** "수원시장안구" → "수원시 장안구" (일반구는 시 이름과 붙어서 저장되어 있다) */
+export function displaySggName(sggName: string): string {
+  return sggName.replace(/^(.+시)(.+구)$/, "$1 $2");
+}

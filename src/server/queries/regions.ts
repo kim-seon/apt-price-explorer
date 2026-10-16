@@ -1,6 +1,6 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { querySggCodes } from "@/lib/regions";
+import { eq, sql } from "drizzle-orm";
+import { displaySggName, querySggCodes } from "@/lib/regions";
 import { getDb } from "../db";
 import { regions } from "../db/schema";
 
@@ -30,10 +30,54 @@ export async function getRegionGroups(): Promise<SidoGroup[]> {
       sidoName: row.sidoName,
       sggs: [],
     };
-    // "수원시장안구" → "수원시 장안구" (일반구는 시 이름과 붙어서 저장되어 있다)
-    const sggName = row.sggName.replace(/^(.+시)(.+구)$/, "$1 $2");
-    group.sggs.push({ sggCode: row.sggCode, sggName });
+    group.sggs.push({
+      sggCode: row.sggCode,
+      sggName: displaySggName(row.sggName),
+    });
     groups.set(row.sidoName, group);
   }
   return [...groups.values()];
+}
+
+export type RegionInfo = {
+  sggCode: string;
+  sidoName: string;
+  sggName: string;
+};
+
+/** 지역 페이지 헤더. 조회 대상이 아닌 코드(일반구를 가진 상위 시, 없는 코드)는 null */
+export async function getRegion(sggCode: string): Promise<RegionInfo | null> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      sggCode: regions.sggCode,
+      sggName: regions.sggName,
+      sidoName: regions.sidoName,
+    })
+    .from(regions)
+    .where(eq(regions.level, "sgg"));
+  if (!querySggCodes(rows).includes(sggCode)) return null;
+  const row = rows.find((r) => r.sggCode === sggCode)!;
+  return { ...row, sggName: displaySggName(row.sggName) };
+}
+
+export type DongOption = { name: string; complexCount: number };
+
+/**
+ * 법정동 선택 목록. regions의 읍면동 이름은 거래 데이터의 표기("오남읍 오남리")와 달라서
+ * 단지 테이블의 실제 값으로 만든다.
+ */
+export async function getDongs(sggCode: string): Promise<DongOption[]> {
+  const db = await getDb();
+  const result = await db.execute<{ umd_name: string; n: string }>(sql`
+    SELECT umd_name, count(*) AS n
+    FROM complexes
+    WHERE sgg_code = ${sggCode}
+    GROUP BY umd_name
+    ORDER BY umd_name
+  `);
+  return result.rows.map((r) => ({
+    name: r.umd_name,
+    complexCount: Number(r.n),
+  }));
 }
