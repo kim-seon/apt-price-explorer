@@ -47,9 +47,14 @@ type RawSearch = Record<string, string | string[] | undefined>;
 const first = (v: string | string[] | undefined) =>
   Array.isArray(v) ? v[0] : v;
 
+/** 모든 탭이 공유하는 값 */
+export function parseSharedRegionParams(raw: RawSearch) {
+  return { dong: dong.parse(first(raw.dong)) };
+}
+
 export function parseComplexListParams(raw: RawSearch) {
   return {
-    dong: dong.parse(first(raw.dong)),
+    ...parseSharedRegionParams(raw),
     sort: complexSort.parse(first(raw.sort) ?? ""),
   };
 }

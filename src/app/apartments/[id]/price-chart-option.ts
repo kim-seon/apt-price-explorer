@@ -1,22 +1,13 @@
 import type { ChartOption } from "@/components/charts/echarts";
 import { formatPrice } from "@/lib/format";
+import { monthSequence } from "@/lib/months";
+import { CHART_COLORS } from "@/components/charts/colors";
 import type { MonthlyStat, Trade } from "@/server/queries/apartment-detail";
 
 // 가격 추이 + 거래량 차트 옵션.
 // - 하나의 인스턴스에 grid 2개(가격 / 거래량)를 두고 x축(시간)만 공유한다. y축 두 개를 겹치지 않는다.
 // - 색: 같은 의미에 같은 색 (dataviz reference palette, light)
 //   파랑 = 거래가 분포(개별 거래, p25~p75 밴드, 중위가), 주황 = 역대 최고가 / 신고가, 회색 = 해제 거래
-
-export const CHART_COLORS = {
-  price: "#2a78d6",
-  priceBand: "#b7d3f6",
-  high: "#eb6834",
-  cancelled: "#8a8984",
-  volume: "#86b6ef",
-  surface: "#fcfcfb",
-  grid: "#e8e7e3",
-  textSecondary: "#52514e",
-} as const;
 
 export const SERIES = {
   bandBase: 0,
@@ -33,21 +24,6 @@ const CROSS_PATH =
   "path://M2,0 L5,3 L8,0 L10,2 L7,5 L10,8 L8,10 L5,7 L2,10 L0,8 L3,5 L0,2 Z";
 
 const monthMid = (month: string) => `${month}-15`;
-
-/** 시작~끝 월을 빠짐없이 나열한다. 거래가 없는 달은 밴드 / 중위가 선을 끊기 위해 null로 채운다. */
-export function monthSequence(from: string, to: string): string[] {
-  const out: string[] = [];
-  let [y, m] = from.split("-").map(Number);
-  const [ty, tm] = to.split("-").map(Number);
-  while (y < ty || (y === ty && m <= tm)) {
-    out.push(`${y}-${String(m).padStart(2, "0")}`);
-    if (++m > 12) {
-      m = 1;
-      y++;
-    }
-  }
-  return out;
-}
 
 export function buildPriceChartOption(input: {
   trades: Trade[];
