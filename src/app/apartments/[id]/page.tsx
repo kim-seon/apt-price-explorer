@@ -8,7 +8,13 @@ import {
   periodStartDate,
   type ApartmentParams,
 } from "@/lib/apartment-params";
+import {
+  pillClass,
+  segmentItemClass,
+  segmentRootClass,
+} from "@/components/ui/styles";
 import { toPyeong } from "@/lib/format";
+import { displaySggName } from "@/lib/regions";
 import {
   getAreaTypes,
   getMonthlyStats,
@@ -51,11 +57,23 @@ async function ApartmentHeader({
 
   return (
     <header>
-      <p className="text-sm text-neutral-500">
-        {complex.sidoName} {complex.sggName} {complex.umdName}
+      <p className="text-sm text-muted-foreground">
+        {complex.sidoName}{" "}
+        <Link
+          href={`/regions/${complex.sggCode}`}
+          className="underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {displaySggName(complex.sggName)}
+        </Link>{" "}
+        <Link
+          href={`/regions/${complex.sggCode}?dong=${encodeURIComponent(complex.umdName)}`}
+          className="underline-offset-2 hover:text-foreground hover:underline"
+        >
+          {complex.umdName}
+        </Link>
       </p>
       <h1 className="mt-1 text-2xl font-bold">{complex.name}</h1>
-      <p className="mt-1 text-sm text-neutral-500">
+      <p className="mt-1 text-sm text-muted-foreground">
         {complex.buildYear ? `${complex.buildYear}년 준공 · ` : ""}데이터 기준{" "}
         {freshness ? new Date(freshness).toLocaleDateString("ko-KR") : "-"}
         <span className="ml-1">
@@ -110,30 +128,34 @@ async function ApartmentBody({
 
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-4 mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-        <nav aria-label="면적 타입" className="flex flex-wrap gap-1">
+      <div className="sticky top-0 z-10 -mx-4 mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
+        {/* 모바일에서는 면적 타입을 한 줄로 두고 가로로 넘긴다 */}
+        <nav
+          aria-label="면적 타입"
+          className="-mx-4 flex w-[calc(100%+2rem)] gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:w-auto sm:flex-wrap sm:overflow-visible sm:px-0"
+        >
           {areaTypes.map((t) => (
             <Link
               key={t.label}
               href={href({ type: t.label })}
               aria-current={t.label === selected?.label ? "page" : undefined}
-              className="rounded-full border border-neutral-300 px-3 py-1 text-sm aria-[current=page]:border-neutral-900 aria-[current=page]:bg-neutral-900 aria-[current=page]:text-white"
+              className={pillClass}
               scroll={false}
             >
               전용 {t.label}㎡
-              <span className="ml-1 text-xs opacity-70">
+              <span className="text-xs opacity-60">
                 ({toPyeong(t.minArea)}평 · {t.tradeCount}건)
               </span>
             </Link>
           ))}
         </nav>
-        <nav aria-label="기간" className="flex gap-1">
+        <nav aria-label="기간" className={segmentRootClass}>
           {PERIODS.map((p) => (
             <Link
               key={p.value}
               href={href({ period: p.value })}
               aria-current={p.value === query.period ? "page" : undefined}
-              className="rounded px-2 py-1 text-sm text-neutral-600 aria-[current=page]:bg-neutral-100 aria-[current=page]:font-semibold aria-[current=page]:text-neutral-900"
+              className={segmentItemClass}
               scroll={false}
             >
               {p.label}
@@ -143,7 +165,7 @@ async function ApartmentBody({
       </div>
 
       {trades.length === 0 ? (
-        <p className="mt-10 text-center text-neutral-500">
+        <p className="mt-10 text-center text-muted-foreground">
           이 기간에는 거래가 없습니다.
         </p>
       ) : (

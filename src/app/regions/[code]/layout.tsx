@@ -39,8 +39,8 @@ async function RegionHeader({
   return (
     <header className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p className="text-sm text-neutral-500">
-          <Link href="/" className="hover:text-neutral-900">
+        <p className="text-sm text-muted-foreground">
+          <Link href="/" className="hover:text-foreground">
             지역 선택
           </Link>
           <span aria-hidden> › </span>

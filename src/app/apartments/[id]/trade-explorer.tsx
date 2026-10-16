@@ -171,10 +171,10 @@ export function TradeExplorer({
         <EChart
           option={option}
           onReady={handleReady}
-          className="mt-2 h-[420px] w-full"
+          className="mt-2 h-[340px] w-full sm:h-[420px]"
           ariaLabel="면적 타입별 거래가 추이와 월별 거래량. 아래 거래 내역 표에서 같은 데이터를 확인할 수 있습니다."
         />
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           아래 막대를 끌어 기간을 고르면 요약과 거래 내역이 함께 바뀝니다.
           2020년 2월 이전 거래는 해제 정보가 없어 해제된 거래가 포함되어 있을 수
           있습니다.
@@ -185,12 +185,12 @@ export function TradeExplorer({
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="font-semibold">
             거래 내역{" "}
-            <span className="font-normal text-neutral-500">
+            <span className="font-normal text-muted-foreground">
               {inRange.length}건
             </span>
           </h2>
           {range && (
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {range.from.replace("-", ".")} ~ {range.to.replace("-", ".")}{" "}
               선택됨{" "}
               <button
@@ -239,13 +239,15 @@ function SummaryCards({ summary }: { summary: ReturnType<typeof summarize> }) {
       {items.map((item) => (
         <div
           key={item.label}
-          className="rounded-lg border border-neutral-200 p-3"
+          className="rounded-lg border border-border bg-card p-3"
         >
-          <dt className="text-xs text-neutral-500">{item.label}</dt>
+          <dt className="text-xs text-muted-foreground">{item.label}</dt>
           <dd className="mt-1 text-lg font-semibold tabular-nums">
             {item.value}
           </dd>
-          <dd className="text-xs text-neutral-500 tabular-nums">{item.note}</dd>
+          <dd className="text-xs text-muted-foreground tabular-nums">
+            {item.note}
+          </dd>
         </div>
       ))}
     </dl>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { normalizeSearchQuery } from "@/lib/search-query";
@@ -127,11 +128,15 @@ export function SearchBox() {
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
-        className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-base shadow-sm outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+        className="h-12 w-full rounded-lg border border-input bg-card pr-4 pl-11 text-base shadow-xs outline-none focus:border-ring focus:ring-3 focus:ring-ring/20"
+      />
+      <Search
+        aria-hidden
+        className="pointer-events-none absolute top-3.5 left-4 size-5 text-muted-foreground"
       />
 
       {showList && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-lg">
           <ul
             id={listboxId}
             role="listbox"
@@ -149,18 +154,18 @@ export function SearchBox() {
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => go(item)}
                 onMouseEnter={() => setActive(i)}
-                className="flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2.5 aria-selected:bg-neutral-100"
+                className="flex cursor-pointer items-baseline justify-between gap-3 px-4 py-2.5 aria-selected:bg-muted"
               >
                 <span className="min-w-0">
                   <span className="block truncate font-medium">
                     {item.name}
                   </span>
-                  <span className="block truncate text-sm text-neutral-500">
+                  <span className="block truncate text-sm text-muted-foreground">
                     {item.sidoName} {item.sggName} {item.umdName}
                     {item.buildYear ? ` · ${item.buildYear}년` : ""}
                   </span>
                 </span>
-                <span className="shrink-0 text-xs text-neutral-500 tabular-nums">
+                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
                   거래 {item.tradeCount.toLocaleString("ko-KR")}건
                 </span>
               </li>
@@ -169,7 +174,7 @@ export function SearchBox() {
           <p
             role="status"
             aria-live="polite"
-            className="px-4 py-2 text-sm text-neutral-500 empty:hidden"
+            className="px-4 py-2 text-sm text-muted-foreground empty:hidden"
           >
             {status === "error"
               ? "검색 중 문제가 생겼습니다. 잠시 후 다시 시도해 주세요."

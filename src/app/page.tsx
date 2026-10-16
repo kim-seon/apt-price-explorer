@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { pillClass } from "@/components/ui/styles";
 import { getRegionGroups } from "@/server/queries/regions";
 import { SearchBox } from "./search-box";
 
@@ -9,12 +10,13 @@ import { SearchBox } from "./search-box";
 
 export default function HomePage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-20">
-      <h1 className="text-3xl font-bold tracking-tight">
-        아파트 실거래가 탐색기
+    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6 sm:py-16">
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+        단지 이름이나 지역으로 찾아보세요
       </h1>
-      <p className="mt-2 text-neutral-600">
-        서울 · 경기 · 인천 아파트 매매 실거래를 단지별로 살펴보세요.
+      <p className="mt-2 text-muted-foreground">
+        서울 · 경기 · 인천 아파트 매매 실거래를 단지별 가격 분포와 신고가로
+        살펴봅니다.
       </p>
 
       <div className="mt-8">
@@ -39,16 +41,13 @@ async function RegionList() {
     <div className="mt-4 space-y-6">
       {groups.map((group) => (
         <div key={group.sidoName}>
-          <h3 className="text-sm font-medium text-neutral-500">
+          <h3 className="text-sm font-medium text-muted-foreground">
             {group.sidoName}
           </h3>
           <ul className="mt-2 flex flex-wrap gap-1.5">
             {group.sggs.map((sgg) => (
               <li key={sgg.sggCode}>
-                <Link
-                  href={`/regions/${sgg.sggCode}`}
-                  className="inline-block rounded-full border border-neutral-200 px-3 py-1 text-sm hover:border-neutral-900 focus-visible:border-neutral-900"
-                >
+                <Link href={`/regions/${sgg.sggCode}`} className={pillClass}>
                   {sgg.sggName}
                 </Link>
               </li>

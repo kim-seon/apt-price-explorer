@@ -13,6 +13,7 @@ export async function getComplex(aptSeq: string) {
       name: complexes.name,
       buildYear: complexes.buildYear,
       umdName: complexes.umdName,
+      sggCode: complexes.sggCode,
       sidoName: regions.sidoName,
       sggName: regions.sggName,
     })

@@ -9,6 +9,11 @@ import type { RegionMonthlyStat } from "@/server/queries/region-stats";
 
 /** 처음 보여줄 기간. 전체(2006~)는 슬라이더로 넓힌다 */
 const INITIAL_YEARS = 10;
+/**
+ * 신고 기한(계약 후 30일) 때문에 아직 거래가 더 들어올 수 있는 최근 개월 수 (이번 달 + 지난달).
+ * 이 구간은 거래량을 흐리게, 중위가를 점선으로 그려 "급감"으로 읽히지 않게 한다.
+ */
+const PROVISIONAL_MONTHS = 2;
 
 const monthMid = (month: string) => `${month}-15`;
 
@@ -24,6 +29,9 @@ export function buildRegionChartOption(
     const s = byMonth.get(m);
     return [monthMid(m), s ? f(s) : null];
   };
+  const provisional = new Set(months.slice(-PROVISIONAL_MONTHS));
+  // 점선 구간이 실선과 이어지도록 직전 달 하나를 겹쳐 그린다
+  const dashedFrom = months.length - PROVISIONAL_MONTHS - 1;
   const [cy, cm] = currentMonth.split("-").map(Number);
   const zoomStart = `${cy - INITIAL_YEARS}-${String(cm).padStart(2, "0")}-01`;
 
@@ -38,6 +46,7 @@ export function buildRegionChartOption(
       itemWidth: 12,
       itemHeight: 8,
       data: ["3.3㎡당 25~75%", "3.3㎡당 중위가", "거래량"],
+      // 점선 구간(집계 중)은 범례에 따로 두지 않고 tooltip과 차트 아래 설명으로 안내한다
     },
     tooltip: {
       trigger: "axis",
@@ -48,7 +57,9 @@ export function buildRegionChartOption(
         if (!first) return "";
         const month = String((first.value as [string, unknown])[0]).slice(0, 7);
         const s = byMonth.get(month);
-        const head = `<b>${formatYearMonth(month)}</b>`;
+        const head = `<b>${formatYearMonth(month)}</b>${
+          provisional.has(month) ? " (집계 중 · 신고 기한 전)" : ""
+        }`;
         if (!s) return `${head}<br/>거래 없음`;
         const price =
           s.median === null
@@ -81,7 +92,9 @@ export function buildRegionChartOption(
       {
         type: "value",
         gridIndex: 0,
-        scale: true,
+        // 가격 축은 0부터 시작하지 않는다 (변화가 눌린다). 데이터 최솟값 아래 여유를 둔다
+        min: (extent: { min: number }) =>
+          Math.max(0, Math.floor((extent.min * 0.9) / 1000) * 1000),
         splitNumber: 4,
         axisLabel: { formatter: (v: number) => formatPrice(v) },
         splitLine: { lineStyle: { color: CHART_COLORS.grid, width: 1 } },
@@ -138,17 +151,33 @@ export function buildRegionChartOption(
       {
         name: "3.3㎡당 중위가",
         type: "line",
-        data: months.map((m) => pick(m, (s) => s.median)),
+        data: months.map((m) =>
+          provisional.has(m) ? [monthMid(m), null] : pick(m, (s) => s.median),
+        ),
         symbol: "none",
         lineStyle: { width: 2, color: CHART_COLORS.price },
         itemStyle: { color: CHART_COLORS.price },
+      },
+      {
+        name: "3.3㎡당 중위가",
+        type: "line",
+        data: months.map((m, i) =>
+          i >= dashedFrom ? pick(m, (s) => s.median) : [monthMid(m), null],
+        ),
+        symbol: "none",
+        lineStyle: { width: 2, type: "dashed", color: CHART_COLORS.price },
+        itemStyle: { color: CHART_COLORS.price },
+        tooltip: { show: false },
       },
       {
         name: "거래량",
         type: "bar",
         xAxisIndex: 1,
         yAxisIndex: 1,
-        data: months.map((m) => [monthMid(m), byMonth.get(m)?.count ?? 0]),
+        data: months.map((m) => ({
+          value: [monthMid(m), byMonth.get(m)?.count ?? 0],
+          itemStyle: provisional.has(m) ? { opacity: 0.4 } : undefined,
+        })),
         barMaxWidth: 12,
         itemStyle: { color: CHART_COLORS.volume, borderRadius: [2, 2, 0, 0] },
       },

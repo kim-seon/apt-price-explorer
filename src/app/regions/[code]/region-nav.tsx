@@ -9,6 +9,7 @@ import {
   useSelectedLayoutSegment,
 } from "next/navigation";
 import { useTransition } from "react";
+import { tabItemClass, tabListClass } from "@/components/ui/styles";
 import { SHARED_REGION_PARAMS } from "@/lib/region-params";
 import type { DongOption } from "@/server/queries/regions";
 
@@ -32,16 +33,13 @@ export function RegionTabs() {
   const qs = shared.toString();
 
   return (
-    <nav
-      aria-label="지역 보기"
-      className="mt-4 flex gap-1 border-b border-neutral-200"
-    >
+    <nav aria-label="지역 보기" className={`mt-4 ${tabListClass}`}>
       {TABS.map((tab) => (
         <Link
           key={tab.label}
           href={`/regions/${code}${tab.path}${qs ? `?${qs}` : ""}`}
           aria-current={tab.segment === segment ? "page" : undefined}
-          className="-mb-px border-b-2 border-transparent px-3 py-2.5 text-sm text-neutral-600 hover:text-neutral-900 aria-[current=page]:border-neutral-900 aria-[current=page]:font-semibold aria-[current=page]:text-neutral-900"
+          className={tabItemClass}
         >
           {tab.label}
         </Link>
@@ -60,7 +58,7 @@ export function DongSelect({ dongs }: { dongs: DongOption[] }) {
 
   return (
     <label className="flex items-center gap-2 text-sm">
-      <span className="text-neutral-500">법정동</span>
+      <span className="text-muted-foreground">법정동</span>
       <select
         value={current}
         onChange={(e) => {
@@ -73,7 +71,7 @@ export function DongSelect({ dongs }: { dongs: DongOption[] }) {
           });
         }}
         aria-busy={pending}
-        className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 aria-busy:opacity-60"
+        className="h-8 rounded-md border border-input bg-card px-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring aria-busy:opacity-60"
       >
         <option value="">전체</option>
         {dongs.map((d) => (

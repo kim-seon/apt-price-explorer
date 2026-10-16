@@ -12,12 +12,14 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { useState } from "react";
+import { ariaSort, SortButton, tableClass } from "@/components/ui/data-table";
 import { formatPrice, formatShortDate } from "@/lib/format";
 import {
   serializeComplexSort,
   type ComplexSort,
   type ComplexSortKey,
 } from "@/lib/region-params";
+import { cn } from "@/lib/utils";
 import type { RegionComplex } from "@/server/queries/region-complexes";
 
 // 지역 단지 목록. 수백 행이라 한 번에 받아 클라이언트에서 정렬하고, 정렬은 URL에 남긴다
@@ -40,12 +42,24 @@ const columns = helper.columns([
     id: "name",
     header: "단지명",
     cell: (info) => (
-      <Link
-        href={`/apartments/${encodeURIComponent(info.row.original.aptSeq)}`}
-        className="font-medium hover:underline"
-      >
-        {info.getValue()}
-      </Link>
+      <>
+        <Link
+          href={`/apartments/${encodeURIComponent(info.row.original.aptSeq)}`}
+          className="font-medium hover:text-brand-foreground hover:underline"
+        >
+          {info.getValue()}
+        </Link>
+        <span className="block text-xs text-muted-foreground sm:hidden">
+          {[
+            info.row.original.dong,
+            info.row.original.buildYear && `${info.row.original.buildYear}년`,
+            info.row.original.mainType &&
+              `주력 ${info.row.original.mainType}㎡`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </>
     ),
     sortFn: "alphanumeric",
   }),
@@ -76,7 +90,7 @@ const columns = helper.columns([
       return (
         <>
           <span className="font-medium">{formatPrice(c.lastPrice)}</span>
-          <span className="ml-1.5 text-xs text-neutral-500">
+          <span className="block text-xs text-muted-foreground sm:ml-1.5 sm:inline">
             {c.lastArea !== null ? `${Math.round(c.lastArea)}㎡ · ` : ""}
             {formatShortDate(c.lastDealDate)}
           </span>
@@ -88,7 +102,7 @@ const columns = helper.columns([
   }),
   helper.accessor((c) => orUndefined(c.perPyeong), {
     id: "perPyeong",
-    header: "3.3㎡당 (전용, 1년)",
+    header: "3.3㎡당 (1년)",
     cell: (info) => {
       const v = info.getValue();
       return v === undefined ? "-" : formatPrice(v);
@@ -105,6 +119,8 @@ const columns = helper.columns([
 ]);
 
 const numeric = new Set(["buildYear", "perPyeong", "recentCount"]);
+/** 모바일(<640px)에서는 단지 · 최근 거래 · 거래 수만 두고 나머지는 단지 아래 줄로 옮긴다 */
+const desktopOnly = new Set(["dong", "buildYear", "mainType", "perPyeong"]);
 
 export function ComplexTable({
   complexes,
@@ -142,47 +158,43 @@ export function ComplexTable({
 
   return (
     <section aria-labelledby="complex-count" className="mt-4">
-      <p id="complex-count" className="text-sm text-neutral-500">
-        단지 {complexes.length.toLocaleString("ko-KR")}개 · 해제 거래 제외
+      <p id="complex-count" className="text-sm text-muted-foreground">
+        단지{" "}
+        <b className="text-foreground">
+          {complexes.length.toLocaleString("ko-KR")}
+        </b>
+        개
+        <span className="hidden sm:inline">
+          {" "}
+          · 해제 거래 제외 · 3.3㎡당은 전용면적 기준
+        </span>
       </p>
-      <div className="mt-2 overflow-x-auto rounded-lg border border-neutral-200">
-        <table className="w-full text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
+      <div className={cn(tableClass.wrapper, "mt-2")}>
+        <table className={tableClass.table}>
+          <thead className={tableClass.thead}>
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
                 {group.headers.map((header) => {
-                  const sorted = header.column.getIsSorted();
-                  const align = numeric.has(header.column.id)
-                    ? "text-right"
-                    : "text-left";
+                  const id = header.column.id;
+                  const direction = header.column.getIsSorted();
                   return (
                     <th
                       key={header.id}
                       scope="col"
-                      aria-sort={
-                        sorted === "asc"
-                          ? "ascending"
-                          : sorted === "desc"
-                            ? "descending"
-                            : undefined
-                      }
-                      className={`px-3 py-2 font-medium whitespace-nowrap ${align}`}
+                      aria-sort={ariaSort(direction)}
+                      className={cn(
+                        tableClass.th,
+                        numeric.has(id) && tableClass.numeric,
+                        desktopOnly.has(id) && "hidden sm:table-cell",
+                      )}
                     >
                       {header.column.getCanSort() ? (
-                        <button
-                          type="button"
-                          onClick={header.column.getToggleSortingHandler()}
-                          className="inline-flex items-center gap-1 hover:text-neutral-900"
-                        >
-                          <table.FlexRender header={header} />
-                          <span aria-hidden className="w-3 text-xs">
-                            {sorted === "asc"
-                              ? "▲"
-                              : sorted === "desc"
-                                ? "▼"
-                                : ""}
-                          </span>
-                        </button>
+                        <SortButton
+                          label={<table.FlexRender header={header} />}
+                          direction={direction}
+                          numeric={numeric.has(id)}
+                          onClick={header.column.getToggleSortingHandler()!}
+                        />
                       ) : (
                         <table.FlexRender header={header} />
                       )}
@@ -194,16 +206,19 @@ export function ComplexTable({
           </thead>
           <tbody>
             {table.getRowModel().rows.map((row) => (
-              <tr
-                key={row.original.aptSeq}
-                className="border-t border-neutral-100 hover:bg-neutral-50"
-              >
+              <tr key={row.original.aptSeq} className={tableClass.row}>
                 {row.getAllCells().map((cell) => (
                   <td
                     key={cell.id}
-                    className={`px-3 py-2 whitespace-nowrap tabular-nums ${
-                      numeric.has(cell.column.id) ? "text-right" : ""
-                    }`}
+                    className={cn(
+                      tableClass.td,
+                      "py-1.5",
+                      // 모바일에서는 단지명 줄바꿈을 허용해 숫자 열이 화면 안에 들어오게 한다
+                      cell.column.id === "name" &&
+                        "whitespace-normal sm:whitespace-nowrap",
+                      numeric.has(cell.column.id) && tableClass.numeric,
+                      desktopOnly.has(cell.column.id) && "hidden sm:table-cell",
+                    )}
                   >
                     <table.FlexRender cell={cell} />
                   </td>

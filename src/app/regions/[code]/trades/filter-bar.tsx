@@ -1,15 +1,21 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { FilterChip, ToggleChip } from "@/components/ui/filter-chip";
+import { Segmented } from "@/components/ui/segmented";
 import { formatPrice } from "@/lib/format";
 import {
   AREA_BANDS,
+  DEFAULT_TRADE_FILTERS,
   TRADE_PERIODS,
+  type AreaBand,
   type TradeFilters,
 } from "@/lib/region-params";
 
-// 필터 적용 시점 (docs/03 Decisions 2): 기간 · 면적 · 해제 토글은 즉시, 가격 직접 입력은 Enter / blur.
-// "적용" 버튼은 없다.
+// 필터 적용 시점 (docs/03 Decisions 2): 기간 · 면적 · 해제 토글은 고르는 즉시, 가격 직접 입력은 Enter / blur.
+// "적용" 버튼은 없다. 칩은 항상 현재 값을 보여주고, 기본값이 아니면 ✕로 바로 해제한다.
+
+const ALL = "all";
 
 export function FilterBar({
   filters,
@@ -20,129 +26,188 @@ export function FilterBar({
   onChange: (next: TradeFilters) => void;
   summary: ReactNode;
 }) {
+  const period = TRADE_PERIODS.find((p) => p.value === filters.period)!;
+  const area = AREA_BANDS.find((a) => a.value === filters.area);
+  const priceActive =
+    filters.priceMin !== undefined || filters.priceMax !== undefined;
+
   return (
-    <div className="sticky top-0 z-10 -mx-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-neutral-200 bg-white/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
-      <Segmented
-        label="기간"
-        options={TRADE_PERIODS.map((p) => ({ value: p.value, label: p.label }))}
-        value={filters.period}
-        onChange={(period) => onChange({ ...filters, period })}
-      />
-      <Segmented
-        label="전용면적"
-        options={[
-          { value: undefined, label: "전체" },
-          ...AREA_BANDS.map((a) => ({ value: a.value, label: a.label })),
-        ]}
-        value={filters.area}
-        onChange={(area) => onChange({ ...filters, area })}
-      />
-      <PriceRange filters={filters} onChange={onChange} />
-      <label className="flex items-center gap-1.5 text-sm text-neutral-600">
-        <input
-          type="checkbox"
-          checked={filters.cancelled}
-          onChange={(e) =>
-            onChange({ ...filters, cancelled: e.target.checked })
-          }
-          className="size-4 accent-neutral-900"
-        />
-        해제 거래 포함
-      </label>
-      <div className="ml-auto">{summary}</div>
+    <div className="sticky top-0 z-10 -mx-4 border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {/* 모바일에서는 한 줄로 두고 가로로 넘긴다 */}
+        <div
+          role="group"
+          aria-label="거래 필터"
+          className="-mx-4 flex min-w-0 flex-1 gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+        >
+          <FilterChip
+            label="기간"
+            value={period.label}
+            active={filters.period !== DEFAULT_TRADE_FILTERS.period}
+            onClear={() =>
+              onChange({ ...filters, period: DEFAULT_TRADE_FILTERS.period })
+            }
+          >
+            {(close, mobile) => (
+              <Segmented
+                size={mobile ? "lg" : "default"}
+                label="기간"
+                value={filters.period}
+                options={TRADE_PERIODS}
+                onChange={(value) => {
+                  onChange({ ...filters, period: value });
+                  close();
+                }}
+              />
+            )}
+          </FilterChip>
+
+          <FilterChip
+            label="전용"
+            value={area?.label ?? "전체"}
+            active={area !== undefined}
+            onClear={() => onChange({ ...filters, area: undefined })}
+          >
+            {(close, mobile) => (
+              <Segmented
+                size={mobile ? "lg" : "default"}
+                label="전용면적"
+                value={filters.area ?? ALL}
+                options={[
+                  { value: ALL, label: "전체" },
+                  ...AREA_BANDS.map((a) => ({
+                    value: a.value,
+                    label: a.label,
+                  })),
+                ]}
+                onChange={(value) => {
+                  onChange({
+                    ...filters,
+                    area: value === ALL ? undefined : (value as AreaBand),
+                  });
+                  close();
+                }}
+                className={mobile ? "grid grid-cols-3" : "flex-wrap"}
+              />
+            )}
+          </FilterChip>
+
+          <FilterChip
+            label="거래가"
+            value={priceActive ? priceLabel(filters) : "전체"}
+            active={priceActive}
+            onClear={() =>
+              onChange({ ...filters, priceMin: undefined, priceMax: undefined })
+            }
+          >
+            {(close) => (
+              <PriceRange
+                filters={filters}
+                onChange={onChange}
+                onDone={close}
+              />
+            )}
+          </FilterChip>
+
+          <ToggleChip
+            label="해제 거래 포함"
+            pressed={filters.cancelled}
+            onChange={(cancelled) => onChange({ ...filters, cancelled })}
+          />
+        </div>
+        {/* 모바일에서는 칩 아래 줄 오른쪽 */}
+        <div className="basis-full text-right sm:ml-auto sm:basis-auto">
+          {summary}
+        </div>
+      </div>
     </div>
   );
 }
 
-function Segmented<T extends string | undefined>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div role="group" aria-label={label} className="flex items-center gap-1">
-      <span className="mr-1 text-sm text-neutral-500">{label}</span>
-      {options.map((o) => (
-        <button
-          key={o.label}
-          type="button"
-          aria-pressed={o.value === value}
-          onClick={() => onChange(o.value)}
-          className="rounded px-2 py-1 text-sm text-neutral-600 hover:text-neutral-900 aria-pressed:bg-neutral-900 aria-pressed:text-white"
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
+function priceLabel(f: TradeFilters) {
+  const min = f.priceMin !== undefined ? formatPrice(f.priceMin) : "";
+  const max = f.priceMax !== undefined ? formatPrice(f.priceMax) : "";
+  if (min && max) return `${min} ~ ${max}`;
+  return min ? `${min} 이상` : `${max} 이하`;
 }
 
 /** 억 단위로 입력받아 만원으로 저장한다. 입력 중에는 요청하지 않고 Enter / blur에 반영 */
 function PriceRange({
   filters,
   onChange,
+  onDone,
 }: {
   filters: TradeFilters;
   onChange: (next: TradeFilters) => void;
+  onDone: () => void;
 }) {
   const toEok = (manwon: number | undefined) =>
     manwon === undefined ? "" : String(manwon / 10000);
-  const commit = (field: "priceMin" | "priceMax", raw: string) => {
+  const parse = (raw: string) => {
     const eok = raw.trim() === "" ? undefined : Number(raw);
-    const next =
-      eok === undefined || !Number.isFinite(eok) || eok < 0
-        ? undefined
-        : Math.round(eok * 10000);
-    if (next !== filters[field]) onChange({ ...filters, [field]: next });
+    return eok === undefined || !Number.isFinite(eok) || eok < 0
+      ? undefined
+      : Math.round(eok * 10000);
   };
-  const input = (field: "priceMin" | "priceMax", label: string) => (
-    <input
-      // 외부(URL)에서 값이 바뀌면 입력 중이던 내용을 버리고 다시 그린다
-      key={`${field}-${filters[field] ?? ""}`}
-      type="number"
-      inputMode="decimal"
-      min={0}
-      step={0.5}
-      defaultValue={toEok(filters[field])}
-      aria-label={`${label} (억 원)`}
-      placeholder={label}
-      onBlur={(e) => commit(field, e.currentTarget.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") commit(field, e.currentTarget.value);
-      }}
-      className="w-16 rounded border border-neutral-300 px-2 py-1 text-right text-sm tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-    />
-  );
+  const commit = (form: HTMLFormElement) => {
+    const data = new FormData(form);
+    const priceMin = parse(String(data.get("priceMin") ?? ""));
+    const priceMax = parse(String(data.get("priceMax") ?? ""));
+    if (priceMin !== filters.priceMin || priceMax !== filters.priceMax) {
+      onChange({ ...filters, priceMin, priceMax });
+    }
+  };
+  const inputClass =
+    "h-9 w-24 rounded-md border border-input bg-card px-2 text-right text-sm outline-none [appearance:textfield] focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-inner-spin-button]:appearance-none";
 
-  const active =
-    filters.priceMin !== undefined || filters.priceMax !== undefined;
   return (
-    <div role="group" aria-label="거래가" className="flex items-center gap-1">
-      <span className="mr-1 text-sm text-neutral-500">거래가</span>
-      {input("priceMin", "최소")}
-      <span className="text-neutral-400">~</span>
-      {input("priceMax", "최대")}
-      <span className="text-sm text-neutral-500">억</span>
-      {active && (
-        <button
-          type="button"
-          onClick={() =>
-            onChange({ ...filters, priceMin: undefined, priceMax: undefined })
-          }
-          aria-label={`거래가 필터 해제 (${[filters.priceMin, filters.priceMax]
-            .map((v) => (v === undefined ? "제한 없음" : formatPrice(v)))
-            .join(" ~ ")})`}
-          className="ml-0.5 rounded px-1 text-neutral-400 hover:text-neutral-900"
-        >
-          ✕
-        </button>
-      )}
-    </div>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        commit(e.currentTarget);
+        onDone();
+      }}
+      onBlur={(e) => {
+        // 패널 안에서 입력칸 사이를 옮길 때는 반영하지 않는다
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          commit(e.currentTarget);
+        }
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <input
+          name="priceMin"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step={0.5}
+          defaultValue={toEok(filters.priceMin)}
+          aria-label="최소 거래가 (억 원)"
+          placeholder="최소"
+          className={inputClass}
+          autoFocus
+        />
+        <span className="text-muted-foreground">~</span>
+        <input
+          name="priceMax"
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step={0.5}
+          defaultValue={toEok(filters.priceMax)}
+          aria-label="최대 거래가 (억 원)"
+          placeholder="최대"
+          className={inputClass}
+        />
+        <span className="text-sm text-muted-foreground">억</span>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Enter로 적용 · 비우면 제한 없음
+      </p>
+      {/* Enter 제출용. 화면에는 보이지 않는다 */}
+      <button type="submit" className="sr-only">
+        적용
+      </button>
+    </form>
   );
 }

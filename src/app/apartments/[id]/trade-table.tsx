@@ -9,12 +9,14 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table";
+import { ariaSort, SortButton, tableClass } from "@/components/ui/data-table";
 import {
   formatPercent,
   formatPrice,
   formatShortDate,
   pricePerPyeong,
 } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Trade } from "@/server/queries/apartment-detail";
 
 // 거래 내역 테이블. 행 hover / focus → 차트 포인트 하이라이트 (키보드로도 같은 연동)
@@ -65,7 +67,8 @@ const columns = helper.columns([
     header: "비고",
     cell: ({ row }) => {
       const t = row.original;
-      if (t.cancelled) return <span className="text-neutral-500">✕ 해제</span>;
+      if (t.cancelled)
+        return <span className="text-muted-foreground">✕ 해제</span>;
       if (t.recordHighRatio !== null)
         return (
           <span className="font-medium text-[#c4501f]">
@@ -78,6 +81,8 @@ const columns = helper.columns([
 ]);
 
 const numeric = new Set(["price", "area", "floor", "perPyeong"]);
+/** 모바일(<640px)에서 숨기는 열 */
+const desktopOnly = new Set(["area", "dealType"]);
 
 export function TradeTable({
   trades,
@@ -90,51 +95,41 @@ export function TradeTable({
 
   if (trades.length === 0) {
     return (
-      <p className="mt-3 rounded-lg border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500">
+      <p className="mt-3 rounded-lg border border-dashed border-input p-6 text-center text-sm text-muted-foreground">
         선택한 기간에 거래가 없습니다.
       </p>
     );
   }
 
   return (
-    <div className="mt-3 max-h-[480px] overflow-auto rounded-lg border border-neutral-200">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-neutral-50 text-neutral-600">
+    <div
+      className={cn(tableClass.wrapper, "mt-3 max-h-[480px] overflow-y-auto")}
+    >
+      <table className={tableClass.table}>
+        <thead className={cn(tableClass.thead, "sticky top-0 z-[1]")}>
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id}>
               {group.headers.map((header) => {
-                const sorted = header.column.getIsSorted();
-                const align = numeric.has(header.column.id)
-                  ? "text-right"
-                  : "text-left";
+                const id = header.column.id;
+                const direction = header.column.getIsSorted();
                 return (
                   <th
                     key={header.id}
                     scope="col"
-                    aria-sort={
-                      sorted === "asc"
-                        ? "ascending"
-                        : sorted === "desc"
-                          ? "descending"
-                          : undefined
-                    }
-                    className={`px-3 py-2 font-medium whitespace-nowrap ${align}`}
+                    aria-sort={ariaSort(direction)}
+                    className={cn(
+                      tableClass.th,
+                      numeric.has(id) && tableClass.numeric,
+                      desktopOnly.has(id) && "hidden sm:table-cell",
+                    )}
                   >
                     {header.column.getCanSort() ? (
-                      <button
-                        type="button"
-                        onClick={header.column.getToggleSortingHandler()}
-                        className="inline-flex items-center gap-1 hover:text-neutral-900"
-                      >
-                        <table.FlexRender header={header} />
-                        <span aria-hidden className="w-3 text-xs">
-                          {sorted === "asc"
-                            ? "▲"
-                            : sorted === "desc"
-                              ? "▼"
-                              : ""}
-                        </span>
-                      </button>
+                      <SortButton
+                        label={<table.FlexRender header={header} />}
+                        direction={direction}
+                        numeric={numeric.has(id)}
+                        onClick={header.column.getToggleSortingHandler()!}
+                      />
                     ) : (
                       <table.FlexRender header={header} />
                     )}
@@ -152,18 +147,22 @@ export function TradeTable({
               onMouseEnter={() => onHover(row.original.id)}
               onFocus={() => onHover(row.original.id)}
               onBlur={() => onHover(null)}
-              className={`border-t border-neutral-100 outline-none hover:bg-blue-50 focus-visible:bg-blue-50 ${
-                row.original.cancelled
-                  ? "text-neutral-400 line-through decoration-neutral-300"
-                  : ""
-              }`}
+              className={cn(
+                tableClass.row,
+                // 행 hover / focus = 차트 강조 대상. 차트의 거래가 파랑과 같은 계열로 표시한다
+                "outline-none hover:bg-brand-soft focus-visible:bg-brand-soft",
+                row.original.cancelled &&
+                  "text-muted-foreground line-through decoration-muted-foreground/40",
+              )}
             >
               {row.getAllCells().map((cell) => (
                 <td
                   key={cell.id}
-                  className={`px-3 py-1.5 whitespace-nowrap tabular-nums ${
-                    numeric.has(cell.column.id) ? "text-right" : ""
-                  }`}
+                  className={cn(
+                    tableClass.td,
+                    numeric.has(cell.column.id) && tableClass.numeric,
+                    desktopOnly.has(cell.column.id) && "hidden sm:table-cell",
+                  )}
                 >
                   <table.FlexRender cell={cell} />
                 </td>

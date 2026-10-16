@@ -27,7 +27,7 @@ async function ComplexList({
 
   if (complexes.length === 0) {
     return (
-      <p className="mt-10 text-center text-neutral-500">
+      <p className="mt-10 text-center text-muted-foreground">
         {dong
           ? `${dong}에 거래 기록이 있는 단지가 없습니다.`
           : "단지가 없습니다."}

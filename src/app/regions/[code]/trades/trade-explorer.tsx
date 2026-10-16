@@ -93,7 +93,7 @@ export function TradeExplorer({
           <p
             role="status"
             aria-live="polite"
-            className="text-sm whitespace-nowrap text-neutral-600 tabular-nums"
+            className="text-sm whitespace-nowrap text-muted-foreground tabular-nums"
           >
             {stale ? (
               "불러오는 중…"
@@ -103,7 +103,7 @@ export function TradeExplorer({
               <>
                 총 <b>{total.toLocaleString("ko-KR")}</b>건
                 {total > rows.length && (
-                  <span className="text-neutral-400">
+                  <span className="text-muted-foreground/70">
                     {" "}
                     · {rows.length.toLocaleString("ko-KR")}건 표시
                   </span>
@@ -117,7 +117,7 @@ export function TradeExplorer({
       {query.isError && rows.length === 0 ? (
         <ErrorBox onRetry={() => query.refetch()} />
       ) : rows.length === 0 && !query.isFetching ? (
-        <p className="mt-10 text-center text-neutral-500">
+        <p className="mt-10 text-center text-muted-foreground">
           조건에 맞는 거래가 없습니다. 필터를 줄여 보세요.
         </p>
       ) : (
@@ -173,12 +173,12 @@ function LoadMore({
 
   if (!hasNextPage) return null;
   return (
-    <div ref={ref} className="py-6 text-center text-sm text-neutral-500">
+    <div ref={ref} className="py-6 text-center text-sm text-muted-foreground">
       {isError ? (
         <button
           type="button"
           onClick={onLoad}
-          className="rounded-lg border border-neutral-300 px-4 py-2 hover:border-neutral-900"
+          className="rounded-lg border border-input px-4 py-2 hover:border-foreground/40"
         >
           불러오지 못했습니다. 다시 시도
         </button>
@@ -188,7 +188,7 @@ function LoadMore({
         <button
           type="button"
           onClick={onLoad}
-          className="rounded-lg border border-neutral-300 px-4 py-2 hover:border-neutral-900"
+          className="rounded-lg border border-input px-4 py-2 hover:border-foreground/40"
         >
           더 보기
         </button>
@@ -199,12 +199,12 @@ function LoadMore({
 
 function ErrorBox({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="mt-10 text-center text-neutral-600">
+    <div className="mt-10 text-center text-muted-foreground">
       <p>거래를 불러오지 못했습니다.</p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-3 rounded-lg border border-neutral-300 px-4 py-2 text-sm hover:border-neutral-900"
+        className="mt-3 rounded-lg border border-input px-4 py-2 text-sm hover:border-foreground/40"
       >
         다시 시도
       </button>
