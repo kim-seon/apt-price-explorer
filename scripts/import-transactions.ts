@@ -4,6 +4,7 @@
 //   pnpm import:transactions --from 200601 --to 202610            # 전체 (캐시 우선)
 //   pnpm import:transactions --recent 7 --refresh                 # 정기 갱신: 최근 7개월 재수집
 //   옵션: --sgg 11440,11680  --max-calls 9500  --refresh(캐시 무시)
+//         --skip-imported (이미 import_partitions에 있는 파티션은 건너뜀 — 예산 소진 후 이어서 적재할 때)
 //
 // 파티션별 측정값은 data/import-logs/<run>.jsonl에 남긴다.
 
@@ -62,6 +63,7 @@ async function main() {
       sgg: { type: "string" },
       "max-calls": { type: "string", default: "9500" },
       refresh: { type: "boolean", default: false },
+      "skip-imported": { type: "boolean", default: false },
     },
   });
 
@@ -89,9 +91,24 @@ async function main() {
 
   // 최근 월부터 적재해 이후 마일스톤이 최신 데이터로 먼저 진행되게 한다.
   const months = monthRange(from, to).reverse();
-  const partitions = months.flatMap((dealYm) =>
+  let partitions = months.flatMap((dealYm) =>
     sggCodes.map((sggCode) => ({ sggCode, dealYm })),
   );
+  if (values["skip-imported"]) {
+    // 캐시된 파티션도 재적재하면 파티션마다 DELETE(행 수에 비례, 수백 ms)가 다시 돈다
+    const imported = await db
+      .select({
+        sggCode: importPartitions.sggCode,
+        dealYm: importPartitions.dealYm,
+      })
+      .from(importPartitions);
+    const done = new Set(imported.map((p) => `${p.sggCode}:${p.dealYm}`));
+    const before = partitions.length;
+    partitions = partitions.filter(
+      (p) => !done.has(`${p.sggCode}:${p.dealYm}`),
+    );
+    console.log(`skip-imported: ${before - partitions.length} skipped`);
+  }
 
   const runId = new Date().toISOString().replace(/[:.]/g, "-");
   const logFile = `data/import-logs/${runId}.jsonl`;
