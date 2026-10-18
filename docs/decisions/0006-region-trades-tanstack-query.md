@@ -40,4 +40,8 @@
 
 ## Result
 
-(측정 후 기록: 탭 번들 크기, 깊은 스크롤 offset 지연, DOM 수 → keyset / virtualization 판단)
+2026-10-19 (docs/performance/cases/04-trade-table-virtualization.md)
+
+- **offset 유지, keyset 전환 안 함**: 송파구 전체 기간(91,464건)에서 offset 3만까지 DB 37~42ms(로컬) · 운영 40~66ms(왕복 지연이 대부분)로 깊이에 따른 저하가 없다.
+- **가상화 도입**: 병목은 서버가 아니라 클라이언트였다. 5,000행에서 DOM 6만 · 페이지당 1.2초 · 필터 변경 첫 반응 1.16초 → TanStack Virtual로 DOM 736 · 페이지당 0.13초 · 첫 반응 33ms.
+- TanStack Query의 캐시(필터별 페이지 누적)와 이전 결과 유지(keepPreviousData)는 그대로 쓰인다. 가상화 후 필터 변경 시 흐리게 표시하는 대상이 보이는 행뿐이라 즉시 반응한다.
