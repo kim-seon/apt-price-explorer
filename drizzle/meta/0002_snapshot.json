@@ -1,0 +1,403 @@
+{
+  "id": "b8e35753-2480-4713-b277-ec822d9a96c1",
+  "prevId": "18dc17c6-a0a5-4891-81c4-333273de80eb",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.area_types": {
+      "name": "area_types",
+      "schema": "",
+      "columns": {
+        "apt_seq": {
+          "name": "apt_seq",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "min_area": {
+          "name": "min_area",
+          "type": "numeric(9, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_area": {
+          "name": "max_area",
+          "type": "numeric(9, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "area_types_apt_seq_label_pk": {
+          "name": "area_types_apt_seq_label_pk",
+          "columns": [
+            "apt_seq",
+            "label"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.complexes": {
+      "name": "complexes",
+      "schema": "",
+      "columns": {
+        "apt_seq": {
+          "name": "apt_seq",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "build_year": {
+          "name": "build_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sgg_code": {
+          "name": "sgg_code",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "umd_name": {
+          "name": "umd_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jibun": {
+          "name": "jibun",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trade_count": {
+          "name": "trade_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_deal_date": {
+          "name": "last_deal_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.import_partitions": {
+      "name": "import_partitions",
+      "schema": "",
+      "columns": {
+        "sgg_code": {
+          "name": "sgg_code",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deal_ym": {
+          "name": "deal_ym",
+          "type": "char(6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "row_count": {
+          "name": "row_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invalid_count": {
+          "name": "invalid_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fetched_at": {
+          "name": "fetched_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "imported_at": {
+          "name": "imported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "import_partitions_sgg_code_deal_ym_pk": {
+          "name": "import_partitions_sgg_code_deal_ym_pk",
+          "columns": [
+            "sgg_code",
+            "deal_ym"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.regions": {
+      "name": "regions",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "char(10)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "sgg_code": {
+          "name": "sgg_code",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "level": {
+          "name": "level",
+          "type": "varchar(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sido_name": {
+          "name": "sido_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sgg_name": {
+          "name": "sgg_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "umd_name": {
+          "name": "umd_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.transactions": {
+      "name": "transactions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "transactions_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "sgg_code": {
+          "name": "sgg_code",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "umd_code": {
+          "name": "umd_code",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "umd_name": {
+          "name": "umd_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "apt_seq": {
+          "name": "apt_seq",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "apt_name": {
+          "name": "apt_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "jibun": {
+          "name": "jibun",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "build_year": {
+          "name": "build_year",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deal_date": {
+          "name": "deal_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area": {
+          "name": "area",
+          "type": "numeric(9, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "area_type_label": {
+          "name": "area_type_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "floor": {
+          "name": "floor",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancelled": {
+          "name": "cancelled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cancel_date": {
+          "name": "cancel_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deal_type": {
+          "name": "deal_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "registered_date": {
+          "name": "registered_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apt_dong": {
+          "name": "apt_dong",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "transactions_apt_idx": {
+          "name": "transactions_apt_idx",
+          "columns": [
+            {
+              "expression": "apt_seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_sgg_date_idx": {
+          "name": "transactions_sgg_date_idx",
+          "columns": [
+            {
+              "expression": "sgg_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "deal_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

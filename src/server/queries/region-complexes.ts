@@ -51,8 +51,10 @@ export async function getRegionComplexes(
     SELECT c.apt_seq, c.name, c.umd_name, c.build_year, c.last_deal_date,
       t.last_price, t.last_area, t.main_type, t.recent_count, t.per_pyeong
     FROM complexes c
-    LEFT JOIN (
-      SELECT apt_seq,
+    -- 단지마다 apt_seq 인덱스로 거래를 찾는다. IN (...) + GROUP BY 형태는 순차 스캔이 된다
+    -- (238ms → 145ms, 그중 JIT 컴파일 139ms. docs/performance/cases/03-transactions-indexes.md)
+    LEFT JOIN LATERAL (
+      SELECT
         (array_agg(price ORDER BY deal_date DESC, id DESC))[1] AS last_price,
         (array_agg(area ORDER BY deal_date DESC, id DESC))[1] AS last_area,
         count(*) FILTER (
@@ -65,12 +67,8 @@ export async function getRegionComplexes(
           WHERE deal_date >= current_date - make_interval(years => ${PER_PYEONG_YEARS})
         )) AS per_pyeong
       FROM transactions
-      WHERE NOT cancelled
-        AND apt_seq IN (
-          SELECT apt_seq FROM complexes WHERE sgg_code = ${sggCode} ${dongFilter}
-        )
-      GROUP BY apt_seq
-    ) t USING (apt_seq)
+      WHERE apt_seq = c.apt_seq AND NOT cancelled
+    ) t ON true
     WHERE c.sgg_code = ${sggCode} ${dongFilter}
   `);
   return result.rows.map((r) => ({
