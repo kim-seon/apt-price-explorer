@@ -36,29 +36,30 @@ baseline은 모든 쿼리가 130~260ms로 비슷했다. 계획을 보면 전부 
 
 ## 결과
 
-| 쿼리 | 화면 | Before | After |
-|---|---|---:|---:|
-| apt.areaTypes | 단지 상세 | 152.1 | **0.9** |
-| apt.monthlyStats(5y) | 단지 상세 | 154.8 | **6.1** |
-| apt.trades(window) | 단지 상세 | 134.0 | **3.9** |
-| region.complexes | 지역 · 단지 목록 | 238.2 | **126.0** ※ |
-| region.monthlyStats | 지역 · 통계 | 209.0 | **110.7** |
-| region.summary | 지역 · 통계 | 150.0 | **4.7** |
-| region.trades(p1) | 거래 탐색 | 142.6 | **4.5** |
-| region.trades(offset 5000) | 거래 탐색 | 144.3 | **6.2** |
-| region.trades(price sort, dong) | 거래 탐색 | 156.7 | **13.9** |
-| region.trades(count) | 거래 탐색 | 141.4 | **2.3** |
-| import.deletePartition | 적재 / 갱신 | 263.6 | **0.6** |
+| 쿼리 | 화면 | Before | 인덱스 | + JIT off |
+|---|---|---:|---:|---:|
+| apt.areaTypes | 단지 상세 | 152.1 | **0.9** | 0.9 |
+| apt.monthlyStats(5y) | 단지 상세 | 154.8 | **6.1** | 5.6 |
+| apt.trades(window) | 단지 상세 | 134.0 | **3.9** | 2.3 |
+| region.complexes | 지역 · 단지 목록 | 238.2 | **126.0** ※ | **40.1** |
+| region.monthlyStats | 지역 · 통계 | 209.0 | **110.7** | 103.6 |
+| region.summary | 지역 · 통계 | 150.0 | **4.7** | 4.4 |
+| region.trades(p1) | 거래 탐색 | 142.6 | **4.5** | 4.9 |
+| region.trades(offset 5000) | 거래 탐색 | 144.3 | **6.2** | 5.8 |
+| region.trades(price sort, dong) | 거래 탐색 | 156.7 | **13.9** | 13.9 |
+| region.trades(count) | 거래 탐색 | 141.4 | **2.3** | 2.5 |
+| import.deletePartition | 적재 / 갱신 | 263.6 | **0.6** | 0.6 |
 
-(ms, 중앙값 · 7회. 인덱스 합계 +87MB, DB 790MB → 877MB)
+(ms, 중앙값 · 7회. 인덱스 합계 +87MB, DB 790MB → 877MB. JIT off는 마이그레이션 0003 — `ALTER DATABASE … SET jit = off`)
 
-※ `region.complexes`는 인덱스만으로 바뀌지 않았다. 단지 478개의 거래(9.1만 건, 1.8%)를 `apt_seq IN (...) GROUP BY`로 모으면 플래너가 순차 스캔 + 해시 조인을 고른다. 단지마다 인덱스로 찾는 `LATERAL`로 바꿔 실행 시간은 약 43ms가 됐지만, **비용 추정이 커져 JIT 컴파일(139ms)이 붙는다**. JIT를 끄면 43ms (아래 후속 작업).
+※ `region.complexes`는 인덱스만으로 바뀌지 않았다. 단지 478개의 거래(9.1만 건, 1.8%)를 `apt_seq IN (...) GROUP BY`로 모으면 플래너가 순차 스캔 + 해시 조인을 고른다. 단지마다 인덱스로 찾는 `LATERAL`로 바꿔 실행 시간은 약 40ms가 됐지만, **비용 추정이 커져 JIT 컴파일(139ms)이 붙었다**. DB 단위로 JIT를 꺼서 40ms.
 
 `region.monthlyStats`(110ms)는 시군구 전체 기간(약 9만 건)을 읽어 분위수를 계산한다. 인덱스로 줄일 수 있는 범위는 여기까지이고, 더 줄이려면 월별 사전 집계(갱신 비용 · 신선도 trade-off)가 필요하다 — Phase 2 후보.
 
 ## 남은 일 / trade-off
 
 - **운영 반영 순서**: `LATERAL`로 바꾼 쿼리는 인덱스가 없으면 단지마다 전체 스캔이 된다. Neon에 마이그레이션 0002를 먼저 적용한 뒤 배포한다.
-- **용량**: Neon은 매일 갱신의 삭제분(dead tuple 약 58만 행)까지 포함해 이미 930MB. +87MB면 1GB를 넘는다 → 요금제 결정 (docs/decisions/0002).
-- **JIT**: 짧은 OLTP 쿼리에서 컴파일 비용이 실행 시간보다 크다. DB 단위로 끌지 결정 필요.
-- **쓰기 비용**: 인덱스 2개가 적재 INSERT를 느리게 한다. 갱신 시간 재측정 필요 (파티션 삭제가 0.6ms가 된 이득이 훨씬 크다).
+- **용량**: Neon은 매일 갱신의 삭제분(dead tuple 약 58만 행)까지 포함해 930MB였다. +87MB면 1GB를 넘어, Neon을 비우고 로컬(인덱스 포함)에서 재복원했다 → 915MB. 갱신 워크플로에 용량 감시(`pnpm db:size`, 900MB 경고 · 950MB 실패 알림)를 붙였다 (0002).
+- **운영 Neon PK 인덱스**: 복원 중 점진적으로 만들어져 146MB(로컬 재생성 110MB). REINDEX로 36MB를 줄일 수 있지만, 작업 중 임시 공간이 필요해 1GB 근처에서는 보류.
+- **JIT**: 짧은 조회 쿼리에서 컴파일 비용(139ms)이 실행 시간(40ms)보다 커서 DB 단위로 껐다 (0003). 큰 집계 쿼리(`region.monthlyStats`)는 JIT 이득이 있었으나 차이는 작다(110 → 104ms, 오히려 빨라짐 — 측정 편차 범위).
+- **쓰기 비용**: 인덱스 2개가 INSERT를 느리게 하지만, 최근 7개월 재수집(581개 파티션)은 로컬 기준 **2.0분**(파티션 삭제 6~8ms). 인덱스 전 Neon 28.7분 — 운영 재측정은 다음 정기 갱신에서.

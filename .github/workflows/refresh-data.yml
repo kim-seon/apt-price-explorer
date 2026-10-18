@@ -42,3 +42,5 @@ jobs:
           if [ "${{ github.event.schedule }}" = "0 19 1 * *" ]; then MONTHS=24; fi
           pnpm import:transactions --recent "${MONTHS:-7}" --refresh --max-calls 2500
       - run: pnpm derive
+      # Neon Free(1GB) 용량 감시: 950MB 이상이면 실패 → GitHub 실패 알림 (docs/decisions/0002)
+      - run: pnpm db:size
