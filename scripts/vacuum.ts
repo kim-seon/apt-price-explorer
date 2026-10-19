@@ -16,7 +16,7 @@ async function main() {
   try {
     const t0 = performance.now();
     await client.query(
-      "VACUUM (ANALYZE) transactions, complexes, area_types, import_partitions",
+      "VACUUM (ANALYZE) transactions, complexes, area_types, import_partitions, sgg_monthly_counts",
     );
     console.log(
       `VACUUM (ANALYZE) ${((performance.now() - t0) / 1000).toFixed(1)}s`,

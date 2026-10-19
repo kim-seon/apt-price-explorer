@@ -1,4 +1,4 @@
-// 거래 데이터에서 단지(complexes)와 면적 타입(area_types)을 파생하고,
+// 거래 데이터에서 단지(complexes) · 면적 타입(area_types) · 시군구 월별 거래 수(sgg_monthly_counts)를 파생하고,
 // (TRUNCATE는 ACCESS EXCLUSIVE 잠금으로 갱신 중 앱 조회를 막으므로 DELETE를 쓴다 — 읽기는 MVCC로 이전 데이터를 본다)
 // transactions.area_type_label을 채운다. 적재 후 매번 전체 재계산한다 (docs/05 §1, §4).
 //
@@ -41,6 +41,18 @@ async function main() {
             max(deal_date) FILTER (WHERE NOT cancelled)
           FROM transactions
           GROUP BY apt_seq
+        `);
+      });
+
+      // 진입 화면 히트맵용 시군구 × 월 거래 수 (원본 집계는 운영에서 3.5초 → 사전 집계)
+      await timed("sgg_monthly_counts", async () => {
+        await tx.execute(sql`DELETE FROM sgg_monthly_counts`);
+        await tx.execute(sql`
+          INSERT INTO sgg_monthly_counts (sgg_code, deal_ym, trade_count)
+          SELECT sgg_code, to_char(date_trunc('month', deal_date), 'YYYY-MM'), count(*)
+          FROM transactions
+          WHERE NOT cancelled
+          GROUP BY 1, 2
         `);
       });
 

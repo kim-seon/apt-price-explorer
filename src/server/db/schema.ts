@@ -122,3 +122,18 @@ export const importPartitions = pgTable(
   },
   (t) => [primaryKey({ columns: [t.sggCode, t.dealYm] })],
 );
+
+/**
+ * 시군구 × 계약월 거래 수 (해제 제외). 진입 화면 히트맵용 사전 집계 — 원본 집계는 운영에서 3.5초.
+ * derive가 매번 전체 재계산한다 (원본과 같은 하루 1회 갱신). docs/charts/heatmap.md
+ */
+export const sggMonthlyCounts = pgTable(
+  "sgg_monthly_counts",
+  {
+    sggCode: char("sgg_code", { length: 5 }).notNull(),
+    /** "2026-09" */
+    dealYm: char("deal_ym", { length: 7 }).notNull(),
+    tradeCount: integer("trade_count").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.sggCode, t.dealYm] })],
+);

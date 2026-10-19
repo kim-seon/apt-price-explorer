@@ -1,5 +1,5 @@
 // DB 쿼리 벤치마크 (CLAUDE.md 3.3 / 10). 화면별 대표 쿼리를 N회 실행해 중앙값을 낸다.
-// 사용: pnpm bench:queries [--runs 5] [--explain <이름>]
+// 사용: pnpm bench:queries [--runs 5] [--only <이름,…>] [--explain <이름>]
 //   - 측정 환경: 로컬 Docker PostgreSQL 17, 수도권 전체 적재(약 514만 건) 후 VACUUM FULL · ANALYZE
 //   - 쿼리 SQL은 src/server/queries/*의 것을 그대로 옮겼다. 쿼리를 바꾸면 여기도 함께 바꾼다.
 //   - 대표 값: 송파구(11710, 거래 최다권) · 헬리오시티(11710-8865, 단지 최다 거래) 84㎡
@@ -19,6 +19,13 @@ const PER_PYEONG = "price / area * 3.305785";
 type Bench = { name: string; screen: string; sql: string; params: unknown[] };
 
 const BENCHES: Bench[] = [
+  {
+    name: "home.heatmap",
+    screen: "진입 · 히트맵",
+    sql: `SELECT sgg_code, to_char(date_trunc('month', deal_date), 'YYYY-MM') AS ym, count(*)
+      FROM transactions WHERE NOT cancelled GROUP BY 1, 2`,
+    params: [],
+  },
   {
     name: "apt.areaTypes",
     screen: "단지 상세",
@@ -153,6 +160,8 @@ async function main() {
     options: {
       runs: { type: "string", default: "5" },
       explain: { type: "string" },
+      // 쉼표로 구분한 이름만 측정 (예: --only home.heatmap)
+      only: { type: "string" },
     },
   });
   const pool = new pg.Pool({ connectionString: requireEnv("DATABASE_URL") });
@@ -181,7 +190,8 @@ async function main() {
     );
     console.log("| 쿼리 | 화면 | 중앙값 ms | 최소 | 최대 |");
     console.log("|---|---|---:|---:|---:|");
-    for (const b of BENCHES) {
+    const only = values.only?.split(",");
+    for (const b of BENCHES.filter((x) => !only || only.includes(x.name))) {
       await runOnce(client, b); // 캐시 예열
       const times: number[] = [];
       for (let i = 0; i < runs; i++) times.push(await runOnce(client, b));

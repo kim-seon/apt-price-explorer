@@ -29,6 +29,13 @@
       "when": 1792331145413,
       "tag": "0003_disable_jit",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792409695635,
+      "tag": "0004_sgg_monthly_counts",
+      "breakpoints": true
     }
   ]
 }

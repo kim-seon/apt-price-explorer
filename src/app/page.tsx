@@ -1,15 +1,18 @@
 import { BarChart3, ChartSpline, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
+import { Card, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { pillClass } from "@/components/ui/styles";
 import { getMostTradedComplexes } from "@/server/queries/complexes";
+import { getHeatmap } from "@/server/queries/heatmap";
 import { getRegionGroups } from "@/server/queries/regions";
+import { HeatmapLoader, HeatmapSkeleton } from "./heatmap-loader";
 import { SearchBox } from "./search-box";
 
 // 진입 화면 (docs/03-ux-design.md ①): 단지 상세로 최대한 빨리 보내는 것이 목적.
 // 시안 01을 따르되 사진 대신 타이포 중심으로 둔다 (실제 단지 사진처럼 오인될 이미지를 쓰지 않는다).
-// 수도권 히트맵은 MVP 마지막 작업(M6)에서 검색창 아래에 추가한다.
+// 검색창 아래 수도권 히트맵(M6, docs/03 C): 시장 분석이 아니라 지역 선택 입구.
 
 const FEATURES = [
   {
@@ -52,7 +55,24 @@ export default function HomePage() {
       </section>
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <ul className="mt-10 grid gap-3 sm:grid-cols-3">
+        <Card aria-labelledby="heatmap-heading" className="mt-10">
+          <CardHeader
+            id="heatmap-heading"
+            title="수도권 거래량 한눈에 보기"
+            description="시군구 × 월 아파트 매매 거래 수 (해제 제외) · 칸을 누르면 그 지역 페이지로 이동합니다"
+          />
+          <div className="mt-3">
+            <Suspense fallback={<HeatmapSkeleton rows={82} />}>
+              <Heatmap />
+            </Suspense>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            최근 1~2개월은 신고 기한(계약 후 30일) 전이라 거래가 더 늘어날 수
+            있습니다. 모바일에서는 최근 24개월만 표시합니다.
+          </p>
+        </Card>
+
+        <ul className="mt-6 grid gap-3 sm:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
             <li
               key={title}
@@ -83,6 +103,11 @@ export default function HomePage() {
       </div>
     </main>
   );
+}
+
+async function Heatmap() {
+  const data = await getHeatmap();
+  return <HeatmapLoader data={data} />;
 }
 
 async function MostTraded() {

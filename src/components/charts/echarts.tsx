@@ -16,6 +16,7 @@ import * as echarts from "echarts/core";
 import type { ComposeOption, ECharts } from "echarts/core";
 import type {
   BarSeriesOption,
+  HeatmapSeriesOption,
   LineSeriesOption,
   ScatterSeriesOption,
 } from "echarts/charts";
@@ -24,6 +25,7 @@ import type {
   GridComponentOption,
   LegendComponentOption,
   TooltipComponentOption,
+  VisualMapComponentOption,
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
@@ -49,17 +51,28 @@ export type ChartOption = ComposeOption<
   | TooltipComponentOption
   | LegendComponentOption
   | DataZoomComponentOption
+  // 히트맵 전용 모듈은 사용하는 파일에서 등록한다 (공통 번들에 넣지 않음, docs/decisions/0004)
+  | HeatmapSeriesOption
+  | VisualMapComponentOption
 >;
 
 type Props = {
   option: ChartOption;
   className?: string;
+  /** 데이터에 따라 높이가 정해지는 차트(히트맵)용 */
+  style?: React.CSSProperties;
   /** 차트 인스턴스가 준비되면 호출. 이벤트 등록 / dispatchAction용. */
   onReady?: (chart: ECharts) => void;
   ariaLabel: string;
 };
 
-export function EChart({ option, className, onReady, ariaLabel }: Props) {
+export function EChart({
+  option,
+  className,
+  style,
+  onReady,
+  ariaLabel,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<ECharts | null>(null);
   const onReadyRef = useRef(onReady);
@@ -91,6 +104,7 @@ export function EChart({ option, className, onReady, ariaLabel }: Props) {
     <div
       ref={containerRef}
       className={className}
+      style={style}
       role="img"
       aria-label={ariaLabel}
     />
