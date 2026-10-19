@@ -59,8 +59,8 @@ export default function HomePage() {
         <Card aria-labelledby="heatmap-heading" className="mt-10">
           <CardHeader
             id="heatmap-heading"
-            title="수도권 거래량 한눈에 보기"
-            description="시군구 × 월 아파트 매매 거래 수 (해제 제외) · 칸을 누르면 그 지역 페이지로 이동합니다"
+            title="지금 거래가 활발한 곳"
+            description="시군구 × 월 매매 거래 수를 그 지역 평소(직전 5년 월평균)와 비교 · 칸을 누르면 그 지역 페이지로"
           />
           <div className="mt-3">
             <Suspense fallback={<HeatmapSkeleton />}>
@@ -68,8 +68,8 @@ export default function HomePage() {
             </Suspense>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            최근 1~2개월은 신고 기한(계약 후 30일) 전이라 거래가 더 늘어날 수
-            있습니다. 모바일에서는 최근 24개월만 표시합니다.
+            해제 거래 제외. 최근 2개월은 신고 기한(계약 후 30일) 전이라 거래가
+            더 늘어날 수 있어 흐리게 표시합니다.
           </p>
         </Card>
 
@@ -155,13 +155,14 @@ async function RegionList() {
 }
 
 function HeatmapSkeleton() {
-  // 범례 줄 + 히트맵 높이 (83개 시군구 · 시도 3개) — 실제와 같은 높이로 자리를 잡는다
+  // 탭 줄 + 범례 + 첫 탭(서울 25개 구) 높이 — 실제와 같은 높이로 자리를 잡는다
   return (
-    <div aria-busy="true" aria-label="거래량 히트맵 불러오는 중">
-      <Skeleton className="h-4 w-80 max-w-full" />
+    <div aria-busy="true" aria-label="거래 활발도 히트맵 불러오는 중">
+      <Skeleton className="h-8 w-64 max-w-full" />
+      <Skeleton className="mt-3 h-6 w-96 max-w-full" />
       <Skeleton
-        className="mt-2 w-full rounded-md"
-        style={{ height: heatmapHeight(83, 3) }}
+        className="mt-3 w-full rounded-md"
+        style={{ height: heatmapHeight(25) }}
       />
     </div>
   );
