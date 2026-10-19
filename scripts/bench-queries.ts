@@ -3,7 +3,7 @@
 //   - 측정 환경: 로컬 Docker PostgreSQL 17, 수도권 전체 적재(약 514만 건) 후 VACUUM FULL · ANALYZE
 //   - 쿼리 SQL은 src/server/queries/*의 것을 그대로 옮겼다. 쿼리를 바꾸면 여기도 함께 바꾼다.
 //   - 대표 값: 송파구(11710, 거래 최다권) · 헬리오시티(11710-8865, 단지 최다 거래) 84㎡
-// 결과 기록: docs/performance/db-baseline.md
+// 결과 기록: docs/performance/cases/03-transactions-indexes.md
 
 import "./lib/env";
 import { parseArgs } from "node:util";

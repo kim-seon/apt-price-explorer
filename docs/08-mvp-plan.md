@@ -78,3 +78,21 @@
 2. 지역 통계와 지역 거래 탐색 테이블 동작
 3. Frontend / API / DB baseline 측정값 문서화
 4. 배포 URL
+
+## 4. MVP 완료 점검 (2026-10-19)
+
+| DoD | 상태 | 근거 |
+|---|---|---|
+| 1. 검색 → 단지 상세 → 차트 · 테이블 탐색이 수도권 실데이터로 동작 | ✅ | 5,144,081건(2006-01 ~ 2026-10), 운영 배포 |
+| 2. 지역 통계와 지역 거래 탐색 테이블 동작 | ✅ | `/regions/[code]` 단지 목록 · 통계 · 거래 탐색 |
+| 3. Frontend / API / DB baseline 문서화 | ✅ | `performance/frontend-baseline.md` · `ci-baseline.md` · `cases/01~05` · `pnpm bench:queries` · `pnpm bench:lh` |
+| 4. 배포 URL | ✅ | https://apt-price-explorer.vercel.app (Vercel + Neon, 매일 자동 갱신) |
+
+마일스톤: M0 ~ M7 완료. M6 히트맵은 ECharts → Canvas 직접 구현과 2차 설계(시도 탭 · 평소 대비)까지 반영.
+
+Phase 2 완료 기준("병목 발견 → 개선 → 재측정" 2~3개)은 MVP 중에 이미 5건이 쌓였다(사례 01~05, 히트맵). Phase 2 시작점 후보:
+
+- 단지 상세 TBT 517ms — 표가 아니라 가격 차트(수천 개 점) · hydration. ECharts 지연 로딩 / `large` 모드 / 샘플링 비교
+- 지역 월별 통계 104ms — 시군구 전체 기간 분위수. 월별 사전 집계(갱신 비용 · 신선도 trade-off)
+- 정기 갱신 — 바뀌지 않은 파티션은 교체하지 않기(내용 해시). 운영 갱신 24분 · 쓰기량 감소
+- 운영 DB 용량 975MB / 1GB — 매월 24개월 재수집(11/1) 결과로 Launch 전환 판단
