@@ -7,7 +7,8 @@ import { pillClass } from "@/components/ui/styles";
 import { getMostTradedComplexes } from "@/server/queries/complexes";
 import { getHeatmap } from "@/server/queries/heatmap";
 import { getRegionGroups } from "@/server/queries/regions";
-import { HeatmapLoader, HeatmapSkeleton } from "./heatmap-loader";
+import { HeatmapCanvas } from "./heatmap-canvas";
+import { heatmapHeight } from "./heatmap-layout";
 import { SearchBox } from "./search-box";
 
 // 진입 화면 (docs/03-ux-design.md ①): 단지 상세로 최대한 빨리 보내는 것이 목적.
@@ -62,7 +63,7 @@ export default function HomePage() {
             description="시군구 × 월 아파트 매매 거래 수 (해제 제외) · 칸을 누르면 그 지역 페이지로 이동합니다"
           />
           <div className="mt-3">
-            <Suspense fallback={<HeatmapSkeleton rows={82} />}>
+            <Suspense fallback={<HeatmapSkeleton />}>
               <Heatmap />
             </Suspense>
           </div>
@@ -107,7 +108,7 @@ export default function HomePage() {
 
 async function Heatmap() {
   const data = await getHeatmap();
-  return <HeatmapLoader data={data} />;
+  return <HeatmapCanvas data={data} />;
 }
 
 async function MostTraded() {
@@ -149,6 +150,19 @@ async function RegionList() {
           </ul>
         </div>
       ))}
+    </div>
+  );
+}
+
+function HeatmapSkeleton() {
+  // 범례 줄 + 히트맵 높이 (83개 시군구 · 시도 3개) — 실제와 같은 높이로 자리를 잡는다
+  return (
+    <div aria-busy="true" aria-label="거래량 히트맵 불러오는 중">
+      <Skeleton className="h-4 w-80 max-w-full" />
+      <Skeleton
+        className="mt-2 w-full rounded-md"
+        style={{ height: heatmapHeight(83, 3) }}
+      />
     </div>
   );
 }
