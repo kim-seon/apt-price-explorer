@@ -11,9 +11,10 @@
 import "./lib/env";
 import { appendFile, mkdir } from "node:fs/promises";
 import { parseArgs } from "node:util";
-import { and, eq, gte, lt, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { createDb } from "../src/server/db/client";
 import {
+  areaTypes,
   importPartitions,
   regions,
   transactions,
@@ -52,6 +53,32 @@ function monthBounds(ym: string) {
   const next =
     m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
   return { start: `${y}-${ym.slice(4)}-01`, next };
+}
+
+type NewTransaction = typeof transactions.$inferInsert;
+
+async function fillKnownAreaTypes(
+  db: ReturnType<typeof createDb>["db"],
+  rows: NewTransaction[],
+) {
+  const aptSeqs = [...new Set(rows.map((r) => r.aptSeq))];
+  if (aptSeqs.length === 0) return;
+  const types = await db
+    .select({
+      aptSeq: areaTypes.aptSeq,
+      label: areaTypes.label,
+      minArea: areaTypes.minArea,
+      maxArea: areaTypes.maxArea,
+    })
+    .from(areaTypes)
+    .where(inArray(areaTypes.aptSeq, aptSeqs));
+  const byApt = Map.groupBy(types, (t) => t.aptSeq);
+  for (const row of rows) {
+    const match = byApt
+      .get(row.aptSeq)
+      ?.find((t) => row.area >= t.minArea && row.area <= t.maxArea);
+    row.areaTypeLabel = match?.label ?? null;
+  }
 }
 
 async function main() {
@@ -148,6 +175,11 @@ async function main() {
           `  invalid ${sggCode} ${dealYm} #${bad.index}: ${bad.reason}`,
         );
       }
+
+      // 기존 면적 타입으로 라벨을 미리 채운다. 비워 두면 derive가 다시 삽입된 행을 전부 UPDATE해
+      // 매일 갱신마다 dead tuple이 두 배가 된다 (docs/performance/cases/05-refresh-churn.md).
+      // 새 면적처럼 범위 밖이면 null로 두고 derive가 채운다.
+      await fillKnownAreaTypes(db, rows);
 
       const { start, next } = monthBounds(dealYm);
       const t0 = performance.now();

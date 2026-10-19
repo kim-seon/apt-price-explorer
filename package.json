@@ -21,7 +21,8 @@
     "analyze:import": "tsx scripts/analyze-import-log.ts",
     "bench:lh": "tsx scripts/bench-lighthouse.ts",
     "bench:queries": "tsx scripts/bench-queries.ts",
-    "db:size": "tsx scripts/report-db-size.ts"
+    "db:size": "tsx scripts/report-db-size.ts",
+    "db:vacuum": "tsx scripts/vacuum.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
