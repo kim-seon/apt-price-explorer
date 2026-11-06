@@ -257,6 +257,16 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  // Drizzle은 실제 PostgreSQL 오류를 cause에 담는다. message("Failed query: …")만 찍으면 원인이 사라진다
+  // (2026-11 운영 용량 한도 초과가 로그에 남지 않았던 문제). 쿼리 · 파라미터는 길어서 앞부분만 남긴다
+  const describe = (e: unknown): string => {
+    if (!(e instanceof Error)) return String(e);
+    const pg = e as Error & { code?: string; detail?: string };
+    const head = [pg.code && `[${pg.code}]`, e.message.slice(0, 300), pg.detail]
+      .filter(Boolean)
+      .join(" ");
+    return e.cause ? `${head}\n  caused by: ${describe(e.cause)}` : head;
+  };
+  console.error(describe(error));
   process.exit(1);
 });

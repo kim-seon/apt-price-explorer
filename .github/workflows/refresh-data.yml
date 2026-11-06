@@ -43,6 +43,10 @@ jobs:
           pnpm import:transactions --recent "${MONTHS:-7}" --refresh --max-calls 2500
       - run: pnpm derive
       # 갱신이 만든 dead tuple을 바로 정리해 다음 갱신이 공간을 재사용하게 한다 (용량 증가 방지)
+      # 적재가 실패해도 실행한다 — 실패한 갱신이 지운 공간을 정리하지 못하면 다음 갱신도 공간이 없어
+      # 실패하는 악순환이 된다 (2026-11, docs/performance/cases/05-refresh-churn.md)
       - run: pnpm db:vacuum
+        if: always()
       # Neon Free(1GB) 용량 감시: 950MB 이상이면 실패 → GitHub 실패 알림 (docs/decisions/0002)
       - run: pnpm db:size
+        if: always()
